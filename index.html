@@ -6,56 +6,77 @@
     <title>Sistema Mestre de Aulas</title>
     <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
     <style>
-        :root { --primary: #2c3e50; --secondary: #27ae60; --danger: #e74c3c; --warning: #f39c12; --blue: #3498db; --whatsapp: #25D366; --purple: #6f42c1; --light: #ecf0f1; }
-        body { font-family: 'Segoe UI', system-ui, sans-serif; background: #f0f2f5; padding: 15px; color: #333; margin: 0; }
-        .container { max-width: 1000px; margin: auto; background: white; padding: 20px; border-radius: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); }
+        :root { 
+            --primary: #2c3e50; --secondary: #27ae60; --danger: #e74c3c; 
+            --warning: #f39c12; --blue: #3498db; --whatsapp: #25D366; 
+            --purple: #6f42c1; --light: #f8f9fa; --dark-overlay: rgba(0,0,0,0.6);
+            --striped: #f4f7f9;
+        }
         
-        h2 { color: var(--primary); display: flex; justify-content: space-between; align-items: center; font-size: 1.3rem; flex-wrap: wrap; gap: 10px; margin-top: 0; }
+        body { font-family: 'Segoe UI', system-ui, sans-serif; background: #f0f2f5; padding: 15px; color: #333; margin: 0; }
+        .container { max-width: 1250px; margin: auto; background: white; padding: 20px; border-radius: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); }
+        
+        h2 { color: var(--primary); display: flex; justify-content: space-between; align-items: center; font-size: 1.3rem; flex-wrap: wrap; gap: 10px; margin-top: 0; border-bottom: 2px solid #eee; padding-bottom: 10px; }
         .status-save { font-size: 0.7rem; background: #d4edda; color: #155724; padding: 5px 10px; border-radius: 20px; }
 
-        /* Seção de Arquivos */
-        .file-section { background: #f8f9fa; padding: 15px; border-radius: 8px; margin-bottom: 20px; border: 1px dashed #ccc; display: flex; flex-direction: column; gap: 10px; }
-        
-        /* Formulário */
-        .form-container { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 12px; background: #fff; padding: 15px; border-radius: 8px; border: 1px solid #eee; margin-bottom: 20px; box-shadow: inset 0 2px 4px rgba(0,0,0,0.02); }
+        .card-section { background: var(--light); padding: 15px; border-radius: 8px; margin-bottom: 20px; border: 1px solid #ddd; }
+        .section-title { font-size: 0.9rem; font-weight: bold; margin-bottom: 10px; display: block; color: var(--primary); }
+
+        .form-container { display: grid; grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); gap: 12px; }
         .input-block { display: flex; flex-direction: column; gap: 5px; }
         label { font-size: 0.8rem; font-weight: bold; color: var(--primary); }
-        input { padding: 10px; border: 1px solid #ddd; border-radius: 6px; font-size: 1rem; }
-
-        .qty-control { display: flex; align-items: center; gap: 8px; }
-        .btn-qty { color: #333; background: var(--light); border: 1px solid #ccc; width: 36px; height: 36px; border-radius: 6px; cursor: pointer; font-size: 1.2rem; display: flex; align-items: center; justify-content: center; }
         
-        /* Tabela */
-        .table-container { overflow-x: auto; }
-        table { width: 100%; border-collapse: collapse; margin-top: 15px; font-size: 0.9rem; }
-        th { background: var(--primary); color: white; padding: 12px; text-align: left; }
-        td { border-bottom: 1px solid #eee; padding: 12px; }
-        
-        /* Botões */
-        button { border: none; cursor: pointer; border-radius: 6px; font-weight: bold; transition: 0.2s; color: white; }
-        .btn-add { background: var(--secondary); width: 100%; grid-column: 1 / -1; padding: 12px; font-size: 1rem; }
-        .btn-action { padding: 8px; margin-right: 5px; }
-        .btn-presenca { background: var(--warning); }
-        .btn-undo { background: #95a5a6; }
-        .btn-danger { background: var(--danger); }
-        
-        .sync-buttons { display: flex; gap: 10px; flex-wrap: wrap; margin-top: 20px; }
-        .btn-whatsapp { background: var(--whatsapp); flex: 1; padding: 12px; }
-        .btn-import-ws { background: var(--purple); flex: 1; padding: 12px; }
-        .btn-excel-save { background: var(--blue); padding: 12px; }
+        input { padding: 10px; border: 1px solid #ddd; border-radius: 6px; font-size: 0.9rem; width: 100%; box-sizing: border-box; color: #000 !important; }
 
-        .summary { margin: 20px 0; padding: 15px; background: var(--primary); color: white; border-radius: 8px; text-align: right; font-weight: bold; font-size: 1.1rem; }
-
-        #importContainer { display: none; margin-top: 15px; padding: 15px; background: #f3f0ff; border: 2px solid var(--purple); border-radius: 8px; }
-        #jsonInput { width: 100%; height: 80px; margin-bottom: 10px; font-family: monospace; border: 1px solid #ccc; padding: 5px; }
-
-        @media (max-width: 600px) {
-            table, thead, tbody, th, td, tr { display: block; }
-            thead tr { position: absolute; top: -9999px; left: -9999px; }
-            tr { border: 1px solid #ccc; margin-bottom: 10px; padding: 10px; border-radius: 8px; }
-            td { border: none; position: relative; padding-left: 50%; text-align: right; min-height: 35px; }
-            td:before { position: absolute; left: 10px; width: 45%; white-space: nowrap; font-weight: bold; text-align: left; content: attr(data-label); }
+        /* CORREÇÃO DO NÚMERO CORTADO */
+        #cortesia { 
+            width: 35px !important; 
+            height: auto !important;
+            min-height: unset !important;
+            padding: 0 !important;
+            margin: 0 !important;
+            text-align: center; 
+            border: none !important; 
+            font-weight: bold; 
+            color: #000 !important; 
+            background: transparent !important;
+            outline: none !important;
         }
+
+        .search-container { margin: 20px 0 10px 0; }
+        .search-input { padding: 12px 15px; width: 100%; border-radius: 8px; border: 2px solid #ddd; font-size: 1rem; box-sizing: border-box; }
+
+        .table-container { overflow-x: auto; margin-top: 10px; border-radius: 8px; border: 1px solid #eee; }
+        table { width: 100%; border-collapse: collapse; font-size: 0.85rem; min-width: 900px; }
+        th { background: var(--primary); color: white; padding: 12px; text-align: left; }
+        td { border-bottom: 1px solid #eee; padding: 10px; vertical-align: middle; transition: background 0.2s; color: #333; }
+        
+        tbody tr:nth-child(even) { background-color: var(--striped); }
+        tbody tr:hover { background-color: #ebf5fb; }
+
+        button { border: none; cursor: pointer; border-radius: 6px; font-weight: bold; transition: 0.2s; color: white; display: flex; align-items: center; justify-content: center; gap: 5px; }
+        .btn-add { background: var(--secondary); width: 100%; grid-column: 1 / -1; padding: 12px; font-size: 1rem; margin-top: 5px; }
+        .btn-action { padding: 8px 10px; min-width: 35px; font-size: 0.9rem; }
+        .btn-check { background: var(--secondary); }
+        .btn-undo { background: var(--warning); }
+        .btn-edit-val { background: none; color: var(--blue); padding: 2px 5px; font-size: 0.7rem; border: 1px dashed var(--blue); margin-top: 4px; display: block; }
+        
+        .footer-actions { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 10px; margin-top: 20px; padding-top: 20px; border-top: 2px solid #eee; }
+        .btn-excel { background: var(--blue); padding: 12px; }
+        .btn-ws-out { background: var(--whatsapp); padding: 12px; }
+        .btn-clear-all { background: var(--danger); padding: 12px; }
+        .summary { margin: 20px 0 10px 0; padding: 15px; background: var(--primary); color: white; border-radius: 8px; text-align: right; font-weight: bold; font-size: 1.1rem; }
+
+        .modal-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: var(--dark-overlay); display: none; align-items: center; justify-content: center; z-index: 1000; padding: 15px; box-sizing: border-box; }
+        .modal-content { background: white; padding: 25px; border-radius: 12px; max-width: 400px; width: 100%; box-shadow: 0 10px 30px rgba(0,0,0,0.3); }
+        .modal-footer { display: flex; justify-content: flex-end; gap: 10px; margin-top: 20px; }
+
+        .qty-control { display: flex; align-items: center; gap: 2px; background: white; border: 1px solid #ddd; border-radius: 6px; padding: 4px; width: fit-content; min-width: 90px; justify-content: center; }
+        .qty-control span { color: #000 !important; font-weight: bold; min-width: 25px; text-align: center; }
+        .btn-qty { color: #333; background: #eee; border: none; width: 25px; height: 25px; border-radius: 4px; cursor: pointer; font-size: 1.1rem; line-height: 1; }
+        .btn-qty:hover { background: #ddd; }
+
+        small { color: #666; font-size: 0.75rem; display: block; }
     </style>
 </head>
 <body>
@@ -63,36 +84,42 @@
 <div class="container">
     <h2>
         Gestão de Aulas
-        <span class="status-save" id="saveStatus">Dados Atuais no Dispositivo</span>
+        <span class="status-save" id="saveStatus">Sistema Ativo</span>
     </h2>
     
-    <div class="file-section">
-        <label><strong>📂 Importar Planilha do Excel:</strong></label>
-        <input type="file" id="fileInput" accept=".xlsx, .xls">
+    <div class="card-section" style="background: #fff;">
+        <span class="section-title">👤 Adicionar Aluno</span>
+        <div class="form-container">
+            <div class="input-block">
+                <label>Nome do Aluno</label>
+                <input type="text" id="nome" placeholder="Ex: João">
+            </div>
+            <div class="input-block">
+                <label>Valor Pago (R$)</label>
+                <input type="number" id="valorPago" placeholder="0.00">
+            </div>
+            <div class="input-block">
+                <label>Data do Pgto</label>
+                <input type="date" id="dataPgto">
+            </div>
+            <div class="input-block">
+                <label>R$ por Aula</label>
+                <input type="number" id="valorAula" value="25">
+            </div>
+            <div class="input-block">
+                <label>Aulas Free</label>
+                <div class="qty-control">
+                    <button class="btn-qty" onclick="changeInputQty('cortesia', -1)">-</button>
+                    <input type="number" id="cortesia" value="0" readonly>
+                    <button class="btn-qty" onclick="changeInputQty('cortesia', 1)">+</button>
+                </div>
+            </div>
+            <button class="btn-add" onclick="adicionarAluno()">+ Cadastrar Aluno</button>
+        </div>
     </div>
 
-    <div class="form-container">
-        <div class="input-block">
-            <label>Nome do Aluno</label>
-            <input type="text" id="nome" placeholder="Ex: João">
-        </div>
-        <div class="input-block">
-            <label>Valor Pago (R$)</label>
-            <input type="number" id="valorPago" placeholder="0.00">
-        </div>
-        <div class="input-block">
-            <label>R$ por Aula</label>
-            <input type="number" id="valorAula" placeholder="25">
-        </div>
-        <div class="input-block">
-            <label>Aulas Free</label>
-            <div class="qty-control">
-                <button class="btn-qty" onclick="changeInputQty('cortesia', -1)">-</button>
-                <input type="number" id="cortesia" value="0" style="width: 40px; text-align: center; border:none; font-weight:bold;" readonly>
-                <button class="btn-qty" onclick="changeInputQty('cortesia', 1)">+</button>
-            </div>
-        </div>
-        <button class="btn-add" onclick="adicionarAluno()">+ Cadastrar Aluno</button>
+    <div class="search-container">
+        <input type="text" id="buscaInput" class="search-input" placeholder="🔍 Buscar aluno por nome..." onkeyup="atualizarTabela()">
     </div>
 
     <div class="table-container">
@@ -100,8 +127,11 @@
             <thead>
                 <tr>
                     <th>Aluno</th>
+                    <th>Pagamento</th>
                     <th>Aulas Free</th>
-                    <th>Saldo Restante</th>
+                    <th>Saldo</th>
+                    <th>Última Aula</th>
+                    <th>Presença</th>
                     <th>Ações</th>
                 </tr>
             </thead>
@@ -111,27 +141,27 @@
 
     <div class="summary" id="resumoFinanceiro">Total Arrecadado: R$ 0,00</div>
 
-    <div class="sync-buttons">
-        <button class="btn-whatsapp" onclick="enviarWhatsapp()">📲 Enviar via WhatsApp</button>
-        <button class="btn-import-ws" onclick="toggleImport()">📥 Colar do WhatsApp</button>
-        <button class="btn-excel-save" onclick="exportarExcel()">💾 Exportar Excel</button>
+    <div class="footer-actions">
+        <button class="btn-excel" onclick="exportarExcel()">📊 Excel</button>
+        <button class="btn-ws-out" onclick="enviarWhatsapp()">📲 WhatsApp Backup</button>
+        <button class="btn-clear-all" onclick="confirmarLimparTudo()">🗑️ Apagar Tudo</button>
     </div>
+</div>
 
-    <div id="importContainer">
-        <label><strong>Cole o código do WhatsApp:</strong></label>
-        <textarea id="jsonInput" placeholder="Cole o código JSON aqui..."></textarea>
-        <button class="btn-import-ws" style="width: 100%;" onclick="processarImportacao()">Confirmar Importação JSON</button>
-    </div>
-
-    <div style="margin-top: 30px; border-top: 1px solid #eee; padding-top: 10px;">
-        <button onclick="limparTudo()" style="background: var(--danger); padding: 8px; font-size: 0.8rem; float:right;">🗑️ Apagar Tudo</button>
+<div id="modalApp" class="modal-overlay">
+    <div class="modal-content">
+        <div id="modalHeader" style="font-weight:bold; font-size:1.1rem; margin-bottom:15px; color: #333;">Título</div>
+        <div id="modalBody" style="color: #333;">Corpo</div>
+        <div class="modal-footer" id="modalFooter"></div>
     </div>
 </div>
 
 <script>
     let alunos = [];
+    let indexTemp = null;
 
-    // --- INICIALIZAÇÃO E STORAGE ---
+    document.getElementById('dataPgto').valueAsDate = new Date();
+
     window.onload = () => {
         const dados = localStorage.getItem('meusAlunos');
         if (dados) {
@@ -140,69 +170,148 @@
         }
     };
 
-    function salvarLocalmente() {
-        localStorage.setItem('meusAlunos', JSON.stringify(alunos));
-        const s = document.getElementById('saveStatus');
-        s.innerText = "Salvando...";
-        setTimeout(() => s.innerText = "Dados Salvos no Dispositivo", 800);
+    function openModal(titulo, corpoHTML, botoes) {
+        document.getElementById('modalHeader').innerText = titulo;
+        document.getElementById('modalBody').innerHTML = corpoHTML;
+        const footer = document.getElementById('modalFooter');
+        footer.innerHTML = '';
+        botoes.forEach(btn => {
+            const b = document.createElement('button');
+            b.innerText = btn.label;
+            b.style.background = btn.color || '#95a5a6';
+            b.style.padding = '8px 15px';
+            b.onclick = () => { if(btn.action) btn.action(); closeModal(); };
+            footer.appendChild(b);
+        });
+        document.getElementById('modalApp').style.display = 'flex';
     }
 
-    // --- IMPORTAÇÃO EXCEL ---
-    document.getElementById('fileInput').addEventListener('change', function(e) {
-        const file = e.target.files[0];
-        const reader = new FileReader();
-        reader.onload = function(e) {
-            const data = new Uint8Array(e.target.result);
-            const workbook = XLSX.read(data, {type: 'array'});
-            const jsonData = XLSX.utils.sheet_to_json(workbook.Sheets[workbook.SheetNames[0]]);
-            
-            // Filtra e mapeia garantindo que os campos do Excel batam com o sistema
-            const importados = jsonData
-                .filter(item => (item.Nome || item.nome) && (item.Nome || item.nome) !== "TOTAL")
-                .map(item => ({
-                    id: item.id || Date.now() + Math.random(),
-                    nome: item.Nome || item.nome,
-                    valorPago: Number(item["Valor Pago"] || item.valorPago || 0),
-                    valorAula: Number(item["Valor Aula"] || item.valorAula || 25),
-                    cortesia: Number(item["Aulas Free"] || item.cortesia || 0),
-                    restantes: Number(item.Restantes || item.restantes || 0)
-                }));
-            
-            if(confirm(`Importar ${importados.length} alunos do Excel?`)) {
-                alunos = importados;
-                atualizarTabela();
-                salvarLocalmente();
-            }
-        };
-        reader.readAsArrayBuffer(file);
-    });
+    function closeModal() { document.getElementById('modalApp').style.display = 'none'; }
 
-    // --- GESTÃO DE ALUNOS ---
-    function changeInputQty(id, delta) {
-        const i = document.getElementById(id);
-        i.value = Math.max(0, parseInt(i.value) + delta);
+    function formatDate(dateStr) {
+        if(!dateStr) return "-";
+        const d = new Date(dateStr + 'T12:00:00');
+        return d.toLocaleDateString('pt-BR');
+    }
+
+    function atualizarTabela() {
+        const tbody = document.querySelector('#tabelaAlunos tbody');
+        const termoBusca = document.getElementById('buscaInput').value.toLowerCase();
+        let total = 0;
+        tbody.innerHTML = '';
+        
+        alunos.sort((a, b) => a.nome.localeCompare(b.nome));
+
+        alunos.forEach((a, idx) => {
+            total += a.valorPago;
+            if (a.nome.toLowerCase().includes(termoBusca)) {
+                tbody.innerHTML += `
+                    <tr>
+                        <td><strong>${a.nome}</strong></td>
+                        <td>
+                            R$ ${a.valorPago.toFixed(2)}
+                            <small>${formatDate(a.dataPgto)}</small>
+                            <button class="btn-edit-val" onclick="abrirEdicao(${idx})">Editar</button>
+                        </td>
+                        <td>
+                            <div class="qty-control" style="min-width: unset;">
+                                <button class="btn-qty" onclick="changeFreeTable(${idx}, -1)">-</button>
+                                <span>${a.cortesia}</span>
+                                <button class="btn-qty" onclick="changeFreeTable(${idx}, 1)">+</button>
+                            </div>
+                        </td>
+                        <td><b style="color: ${a.restantes === 0 ? 'var(--danger)' : 'var(--secondary)'}">${a.restantes} aulas</b></td>
+                        <td>${formatDate(a.ultimaAula)}</td>
+                        <td>
+                            <div style="display:flex; gap:5px;">
+                                <button class="btn-action btn-check" title="Marcar Presença" onclick="abrirModalPresenca(${idx})">✅</button>
+                                <button class="btn-action btn-undo" title="Desfazer Última" onclick="gerenciarPresenca(${idx}, 'sub')">↩️</button>
+                            </div>
+                        </td>
+                        <td>
+                            <button class="btn-action" style="background:var(--danger)" onclick="confirmarRemover(${idx})">🗑️</button>
+                        </td>
+                    </tr>`;
+            }
+        });
+        document.getElementById('resumoFinanceiro').innerText = `Total Arrecadado: R$ ${total.toLocaleString('pt-BR', {minimumFractionDigits: 2})}`;
+        localStorage.setItem('meusAlunos', JSON.stringify(alunos));
     }
 
     function adicionarAluno() {
         const nome = document.getElementById('nome').value;
         const valorPago = parseFloat(document.getElementById('valorPago').value);
+        const dataPgto = document.getElementById('dataPgto').value;
         const valorAula = parseFloat(document.getElementById('valorAula').value) || 25;
         const cortesia = parseInt(document.getElementById('cortesia').value) || 0;
 
-        if (!nome || isNaN(valorPago)) return alert("Preencha nome e valor pago.");
+        if (!nome || isNaN(valorPago)) {
+            openModal("Erro", "Preencha nome e valor.", [{label: "Ok"}]);
+            return;
+        }
 
         alunos.push({ 
-            id: Date.now(), 
-            nome, 
-            valorPago, 
-            valorAula, 
-            cortesia, 
-            restantes: Math.floor(valorPago / valorAula) + cortesia 
+            id: Date.now(), nome, valorPago, dataPgto, valorAula, cortesia, 
+            restantes: Math.floor(valorPago / valorAula) + cortesia,
+            ultimaAula: null
         });
-
+        
+        document.getElementById('buscaInput').value = ''; 
         atualizarTabela();
-        salvarLocalmente();
         limparCampos();
+    }
+
+    function abrirModalPresenca(index) {
+        if(alunos[index].restantes <= 0) {
+            openModal("Saldo Esgotado", "O aluno não possui mais aulas.", [{label: "Ok"}]);
+            return;
+        }
+        indexTemp = index;
+        const hoje = new Date().toISOString().split('T')[0];
+        const html = `
+            <label style="color: #333">Data da Aula:</label>
+            <input type="date" id="dataPresencaInput" value="${hoje}" style="margin-top:10px; padding: 10px; width: 100%; box-sizing: border-box; color: #333;">
+        `;
+        openModal("Marcar Presença", html, [
+            { label: "Cancelar" },
+            { label: "Confirmar ✅", color: 'var(--secondary)', action: salvarPresenca }
+        ]);
+    }
+
+    function salvarPresenca() {
+        const data = document.getElementById('dataPresencaInput').value;
+        alunos[indexTemp].restantes--;
+        alunos[indexTemp].ultimaAula = data;
+        atualizarTabela();
+    }
+
+    function abrirEdicao(index) {
+        indexTemp = index;
+        const a = alunos[index];
+        const html = `
+            <label style="color: #333">Valor Pago (R$):</label>
+            <input type="number" id="editVal" value="${a.valorPago}" step="0.01" style="margin-bottom:10px; padding:10px; width:100%; box-sizing:border-box; color: #333;">
+            <label style="color: #333">Data Pagamento:</label>
+            <input type="date" id="editData" value="${a.dataPgto}" style="padding:10px; width:100%; box-sizing:border-box; color: #333;">
+        `;
+        openModal("Editar Pagamento", html, [
+            { label: "Cancelar" },
+            { label: "Salvar", color: 'var(--blue)', action: () => {
+                const nv = parseFloat(document.getElementById('editVal').value);
+                const nd = document.getElementById('editData').value;
+                const aulasUsadas = (Math.floor(a.valorPago / a.valorAula) + a.cortesia) - a.restantes;
+                a.valorPago = nv;
+                a.dataPgto = nd;
+                const novoTotal = Math.floor(nv / a.valorAula) + a.cortesia;
+                a.restantes = Math.max(0, novoTotal - aulasUsadas);
+                atualizarTabela();
+            }}
+        ]);
+    }
+
+    function changeInputQty(id, delta) {
+        const i = document.getElementById(id);
+        i.value = Math.max(0, parseInt(i.value) + delta);
     }
 
     function changeFreeTable(index, delta) {
@@ -211,96 +320,52 @@
             alunos[index].cortesia = novo;
             alunos[index].restantes += delta;
             atualizarTabela();
-            salvarLocalmente();
         }
     }
 
     function gerenciarPresenca(index, acao) {
-        if (acao === 'add' && alunos[index].restantes > 0) {
-            alunos[index].restantes--;
-        } else if (acao === 'sub') {
+        if (acao === 'sub') {
             const max = Math.floor(alunos[index].valorPago / alunos[index].valorAula) + alunos[index].cortesia;
-            if (alunos[index].restantes < max) alunos[index].restantes++;
+            if (alunos[index].restantes < max) {
+                alunos[index].restantes++;
+                atualizarTabela();
+            }
         }
-        atualizarTabela();
-        salvarLocalmente();
     }
 
-    // --- SINCRONIZAÇÃO WHATSAPP ---
+    function confirmarRemover(index) {
+        openModal("Excluir", `Remover ${alunos[index].nome}?`, [
+            { label: "Não" },
+            { label: "Excluir", color: 'var(--danger)', action: () => { alunos.splice(index, 1); atualizarTabela(); } }
+        ]);
+    }
+
+    function confirmarLimparTudo() {
+        openModal("⚠️ Cuidado", "Isso apagará todos os registros. Continuar?", [
+            { label: "Cancelar" },
+            { label: "Limpar Tudo", color: 'var(--danger)', action: () => { alunos = []; localStorage.clear(); atualizarTabela(); } }
+        ]);
+    }
+
     function enviarWhatsapp() {
-        if (alunos.length === 0) return alert("Nada para enviar.");
-        const msg = `*BACKUP GESTÃO*\nCódigo:\n\n\`\`\`${JSON.stringify(alunos)}\`\`\``;
+        const msg = `*BACKUP GESTÃO*\n\`\`\`${JSON.stringify(alunos)}\`\`\``;
         window.open(`https://api.whatsapp.com/send?text=${encodeURIComponent(msg)}`, '_blank');
     }
 
-    function toggleImport() {
-        const c = document.getElementById('importContainer');
-        c.style.display = c.style.display === 'block' ? 'none' : 'block';
-    }
-
-    function processarImportacao() {
-        try {
-            const raw = document.getElementById('jsonInput').value;
-            const clean = raw.substring(raw.indexOf('['), raw.lastIndexOf(']') + 1);
-            const novos = JSON.parse(clean);
-            if (confirm("Substituir dados atuais pelos do WhatsApp?")) {
-                alunos = novos;
-                atualizarTabela();
-                salvarLocalmente();
-                toggleImport();
-                document.getElementById('jsonInput').value = '';
-            }
-        } catch (e) { alert("Código inválido."); }
-    }
-
-    // --- INTERFACE E EXCEL ---
-    function atualizarTabela() {
-        const tbody = document.querySelector('#tabelaAlunos tbody');
-        let total = 0;
-        tbody.innerHTML = '';
-
-        alunos.forEach((a, index) => {
-            total += a.valorPago;
-            tbody.innerHTML += `
-                <tr>
-                    <td data-label="Aluno"><strong>${a.nome}</strong></td>
-                    <td data-label="Aulas Free">
-                        <div class="qty-control" style="justify-content: flex-end;">
-                            <button class="btn-qty" onclick="changeFreeTable(${index}, -1)">-</button>
-                            <span style="width: 25px; text-align:center">${a.cortesia}</span>
-                            <button class="btn-qty" onclick="changeFreeTable(${index}, 1)">+</button>
-                        </div>
-                    </td>
-                    <td data-label="Restantes">
-                        <b style="color: ${a.restantes === 0 ? 'var(--danger)' : 'var(--secondary)'}">${a.restantes} aulas</b>
-                    </td>
-                    <td data-label="Ações">
-                        <button class="btn-action btn-presenca" onclick="gerenciarPresenca(${index}, 'add')">📍</button>
-                        <button class="btn-action btn-undo" onclick="gerenciarPresenca(${index}, 'sub')">🔄</button>
-                        <button class="btn-action btn-danger" onclick="removerAluno(${index})">🗑️</button>
-                    </td>
-                </tr>
-            `;
-        });
-        document.getElementById('resumoFinanceiro').innerText = `Total Arrecadado: R$ ${total.toLocaleString('pt-BR', {minimumFractionDigits: 2})}`;
-    }
-
     function exportarExcel() {
-        let soma = 0;
-        const dados = alunos.map(a => {
-            soma += a.valorPago;
-            return { "Nome": a.nome, "Valor Pago": a.valorPago, "Valor Aula": a.valorAula, "Aulas Free": a.cortesia, "Restantes": a.restantes };
-        });
-        dados.push({ "Nome": "TOTAL", "Valor Pago": soma });
+        const dados = alunos.map(a => ({ "Nome": a.nome, "Valor": a.valorPago, "Pgto": a.dataPgto, "Restantes": a.restantes, "UltAula": a.ultimaAula }));
         const ws = XLSX.utils.json_to_sheet(dados);
         const wb = XLSX.utils.book_new();
         XLSX.utils.book_append_sheet(wb, ws, "Alunos");
         XLSX.writeFile(wb, "gestao_aulas.xlsx");
     }
 
-    function removerAluno(i) { if(confirm("Excluir?")) { alunos.splice(i, 1); atualizarTabela(); salvarLocalmente(); } }
-    function limparTudo() { if(confirm("Apagar tudo?")) { alunos = []; localStorage.clear(); atualizarTabela(); } }
-    function limparCampos() { document.getElementById('nome').value = ''; document.getElementById('valorPago').value = ''; document.getElementById('cortesia').value = '0'; }
+    function limparCampos() { 
+        document.getElementById('nome').value = ''; 
+        document.getElementById('valorPago').value = ''; 
+        document.getElementById('cortesia').value = '0';
+        document.getElementById('dataPgto').valueAsDate = new Date();
+    }
 </script>
 </body>
 </html>
