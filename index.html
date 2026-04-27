@@ -127,6 +127,7 @@
         .card-section { background: var(--light); padding: 15px; border-radius: 8px; margin-bottom: 16px; border: 1px solid #ddd; }
         .section-title { font-size: 0.9rem; font-weight: bold; margin-bottom: 10px; display: block; color: var(--primary); }
         .form-container { display: grid; grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); gap: 12px; }
+        .input-block.col-span-2 { grid-column: span 2; }
         .input-block { display: flex; flex-direction: column; gap: 5px; }
         label { font-size: 0.8rem; font-weight: bold; color: var(--primary); }
         input[type=text], input[type=number], input[type=date] {
@@ -318,7 +319,7 @@
                 </div>
 
                 <!-- Autocomplete de turma no formulário -->
-                <div class="input-block">
+                <div class="input-block col-span-2">
                     <label>Turma / Modalidade</label>
                     <div class="ac-form-wrap" id="formAcWrap">
                         <input type="text" class="ac-input" id="formAcInput"
@@ -459,6 +460,15 @@ window.onload = () => {
     if (t) turmas     = JSON.parse(t);
     if (m) matriculas = JSON.parse(m);
     if (!turmas.length) migrarDadosAntigos();
+    // Migra matrículas legadas sem historicoPagamentos
+    matriculas.forEach(m => {
+        if (!m.historicoPagamentos) {
+            m.historicoPagamentos = m.valorPago > 0
+                ? [{ id: uid(), data: m.dataPgto || new Date().toISOString().split('T')[0], valor: m.valorPago }]
+                : [];
+        }
+    });
+    salvar();
     if (!turmas.length) {
         turmas = [
             { id: uid(), nome: 'Turma A' },
@@ -841,10 +851,15 @@ function renderTabela() {
         tr.innerHTML = `
             <td><strong>${m.alunoNome}</strong></td>
             ${isAll ? `<td><span class="badge-turma">${nomeTurma(m.turmaId)}</span></td>` : ''}
-            <td>
-                R$ ${fmt(m.valorPago)}
-                <small>${formatDate(m.dataPgto)}</small>
-                <button class="btn-edit-val" onclick="abrirEdicao(${idx})">Editar</button>
+            <td onclick="abrirHistoricoPagamentos(${idx})" title="Ver histórico de pagamentos"
+                style="cursor:pointer;transition:background 0.15s;"
+                onmouseover="this.style.background='#eef5ff'" onmouseout="this.style.background=''">
+                <b style="color:var(--secondary);">R$ ${fmt(m.valorPago)}</b>
+                ${ (m.historicoPagamentos||[]).length > 1
+                    ? `<small>${(m.historicoPagamentos||[]).length} pagamentos</small>`
+                    : `<small>${formatDate((m.historicoPagamentos||[{data:m.dataPgto}])[0]?.data)}</small>`
+                }
+                <small style="color:var(--blue);font-size:0.68rem;">&#128176; ver / editar</small>
             </td>
             <td class="col-valor-aula">
                 <div class="valor-aula-cell">
@@ -966,9 +981,11 @@ function adicionarMatricula() {
         return;
     }
 
+    const pagamentoInicial = valorPago > 0 ? [{ id: uid(), data: dataPgto, valor: valorPago }] : [];
     matriculas.push({
         id: uid(), alunoNome: nome, turmaId,
         valorPago, dataPgto, valorAula, cortesia,
+        historicoPagamentos: pagamentoInicial,
         restantes: Math.floor(valorPago / valorAula) + cortesia,
         ultimaAula: null, historicoPresencas: [],
         devidaTotal: 0, aulasDevidas: 0
@@ -1142,33 +1159,130 @@ function abrirQuitarDivida(idx) {
 }
 
 // ═══════════════════════════════════════════════════════════
-//  EDITAR PAGAMENTO
+//  HISTÓRICO DE PAGAMENTOS
 // ═══════════════════════════════════════════════════════════
-function abrirEdicao(idx) {
+function recalcularSaldo(m) {
+    const totalPago = (m.historicoPagamentos || []).reduce((s, p) => s + p.valor, 0);
+    m.valorPago = totalPago;
+    const consumidas = (m.historicoPresencas || []).filter(h => h.tipo === 'paga').length;
+    m.restantes = Math.max(0, Math.floor(totalPago / m.valorAula) + m.cortesia - consumidas);
+}
+
+function abrirHistoricoPagamentos(idx) {
     tempIdx = idx;
+    _renderModalPagamentos(idx);
+}
+
+function _renderModalPagamentos(idx) {
     const m = matriculas[idx];
-    let opcoesTorma = turmas.map(t => `<option value="${t.id}" ${t.id===m.turmaId?'selected':''}>${t.nome}</option>`).join('');
-    openModal('Editar Pagamento / Turma', `
-        <label style="color:#333;margin-bottom:4px;display:block;">Turma:</label>
-        <select id="editTurma" style="padding:9px;width:100%;border:1px solid #ddd;border-radius:6px;color:#333;margin-bottom:12px;">${opcoesTorma}</select>
-        <label style="color:#333;margin-bottom:4px;display:block;">Valor Pago (R$):</label>
-        <input type="number" id="editVal" value="${m.valorPago}" step="0.01" style="margin-bottom:12px;padding:10px;width:100%;border:1px solid #ddd;border-radius:6px;color:#333;">
-        <label style="color:#333;margin-bottom:4px;display:block;">Data Pagamento:</label>
-        <input type="date" id="editData" value="${m.dataPgto}" style="padding:10px;width:100%;border:1px solid #ddd;border-radius:6px;color:#333;">
+    if (!m.historicoPagamentos) m.historicoPagamentos = [];
+    const hist = m.historicoPagamentos;
+    const hoje = new Date().toISOString().split('T')[0];
+
+    const linhas = hist.length ? [...hist].reverse().map(p => `
+        <li id="pgto-li-${p.id}" style="list-style:none;display:flex;align-items:center;gap:8px;padding:8px 10px;border-radius:6px;margin-bottom:6px;background:#eafaf1;border-left:4px solid var(--secondary);font-size:.87rem;">
+            <span style="flex:1;">📅 <b>${formatDate(p.data)}</b></span>
+            <span style="color:var(--secondary);font-weight:bold;min-width:80px;text-align:right;">R$ ${fmt(p.valor)}</span>
+            <button onclick="editarPagamento(${idx},'${p.id}')" style="background:var(--blue);color:white;border:none;border-radius:4px;padding:3px 9px;font-size:.75rem;cursor:pointer;font-weight:bold;">✏️</button>
+            <button onclick="excluirPagamento(${idx},'${p.id}')" style="background:var(--danger);color:white;border:none;border-radius:4px;padding:3px 9px;font-size:.75rem;cursor:pointer;font-weight:bold;">🗑️</button>
+        </li>`).join('') : `<p style="text-align:center;color:#aaa;padding:16px 0;font-size:.88rem;">Nenhum pagamento registrado.</p>`;
+
+    const totalPago = hist.reduce((s, p) => s + p.valor, 0);
+    const opcoesTorma = turmas.map(t => `<option value="${t.id}" ${t.id===m.turmaId?'selected':''}>${t.nome}</option>`).join('');
+
+    openModal(`💰 Pagamentos — ${m.alunoNome}`, `
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;">
+            <span style="font-size:.85rem;color:#666;">Total pago: <b style="color:var(--secondary);font-size:1rem;">R$ ${fmt(totalPago)}</b></span>
+            <span style="font-size:.85rem;color:#666;">Saldo: <b style="color:${m.restantes>0?'var(--secondary)':'var(--danger)'}">${m.restantes} aula(s)</b></span>
+        </div>
+        <hr class="divider">
+        <div style="max-height:200px;overflow-y:auto;margin-bottom:14px;"><ul style="padding:0;margin:0;">${linhas}</ul></div>
+        <hr class="divider">
+        <div style="margin-top:10px;">
+            <b style="font-size:.85rem;color:#333;">➕ Registrar novo pagamento</b>
+            <div style="display:grid;grid-template-columns:1fr 1fr auto;gap:8px;margin-top:8px;align-items:end;">
+                <div>
+                    <label style="font-size:.75rem;color:#555;font-weight:bold;">Data</label>
+                    <input type="date" id="novoPgtoDt" value="${hoje}" style="padding:7px;width:100%;border:1px solid #ddd;border-radius:6px;color:#333;font-size:.85rem;">
+                </div>
+                <div>
+                    <label style="font-size:.75rem;color:#555;font-weight:bold;">Valor (R$)</label>
+                    <input type="number" id="novoPgtoVal" placeholder="0.00" step="0.01" min="0.01" style="padding:7px;width:100%;border:1px solid #ddd;border-radius:6px;color:#333;font-size:.85rem;">
+                </div>
+                <button onclick="salvarNovoPagamento(${idx})" style="background:var(--secondary);color:white;border:none;border-radius:6px;padding:8px 12px;font-size:.82rem;cursor:pointer;font-weight:bold;white-space:nowrap;">✅ Adicionar</button>
+            </div>
+        </div>
+        <hr class="divider" style="margin-top:14px;">
+        <div style="margin-top:10px;">
+            <label style="font-size:.75rem;color:#555;font-weight:bold;">Turma</label>
+            <select id="editTurmaHist" style="padding:7px;width:100%;border:1px solid #ddd;border-radius:6px;color:#333;font-size:.85rem;margin-top:4px;">${opcoesTorma}</select>
+        </div>
     `, [
-        { label: 'Cancelar' },
-        { label: 'Salvar', color: 'var(--blue)', action: () => {
-            const nv = parseFloat(document.getElementById('editVal').value) || 0;
-            const nd = document.getElementById('editData').value;
-            const nt = document.getElementById('editTurma').value;
-            const consumidas = (m.historicoPresencas || []).filter(h => h.tipo === 'paga').length;
-            m.valorPago = nv; m.dataPgto = nd; m.turmaId = nt;
-            m.restantes = Math.max(0, Math.floor(nv / m.valorAula) + m.cortesia - consumidas);
-            turmaAtiva = nt;
-            renderTudo();
-        }}
+        { label: 'Fechar', action: () => { renderTudo(); } }
     ]);
 }
+
+function salvarNovoPagamento(idx) {
+    const m = matriculas[idx];
+    const val = parseFloat(document.getElementById('novoPgtoVal').value);
+    const dt  = document.getElementById('novoPgtoDt').value;
+    if (!val || val <= 0) { document.getElementById('novoPgtoVal').style.borderColor = 'var(--danger)'; return; }
+    if (!m.historicoPagamentos) m.historicoPagamentos = [];
+    m.historicoPagamentos.push({ id: uid(), data: dt, valor: val });
+    const nt = document.getElementById('editTurmaHist').value;
+    m.turmaId = nt;
+    recalcularSaldo(m);
+    salvar();
+    _renderModalPagamentos(idx);
+}
+
+function editarPagamento(idx, pid) {
+    const m = matriculas[idx];
+    const p = m.historicoPagamentos.find(x => x.id === pid);
+    closeModal();
+    setTimeout(() => {
+        openModal('✏️ Editar Pagamento', `
+            <label style="color:#333;font-size:.85rem;font-weight:bold;display:block;margin-bottom:4px;">Data</label>
+            <input type="date" id="editPgtoDt" value="${p.data}" style="padding:9px;width:100%;border:1px solid #ddd;border-radius:6px;color:#333;margin-bottom:12px;">
+            <label style="color:#333;font-size:.85rem;font-weight:bold;display:block;margin-bottom:4px;">Valor (R$)</label>
+            <input type="number" id="editPgtoVal" value="${p.valor}" step="0.01" min="0.01" style="padding:9px;width:100%;border:1px solid #ddd;border-radius:6px;color:#333;">
+        `, [
+            { label: 'Cancelar', action: () => _renderModalPagamentos(idx) },
+            { label: '💾 Salvar', color: 'var(--blue)', action: () => {
+                const nv = parseFloat(document.getElementById('editPgtoVal').value);
+                const nd = document.getElementById('editPgtoDt').value;
+                if (!nv || nv <= 0) return;
+                p.valor = nv; p.data = nd;
+                recalcularSaldo(m);
+                salvar();
+                _renderModalPagamentos(idx);
+            }}
+        ]);
+    }, 100);
+}
+
+function excluirPagamento(idx, pid) {
+    const m = matriculas[idx];
+    const p = m.historicoPagamentos.find(x => x.id === pid);
+    closeModal();
+    setTimeout(() => {
+        openModal('🗑️ Excluir Pagamento', `
+            <p style="color:#333;">Excluir o pagamento de <b>R$ ${fmt(p.valor)}</b> em <b>${formatDate(p.data)}</b>?</p>
+            <p style="color:var(--danger);font-size:.83rem;">O saldo será recalculado automaticamente.</p>
+        `, [
+            { label: 'Cancelar', action: () => _renderModalPagamentos(idx) },
+            { label: '🗑️ Excluir', color: 'var(--danger)', action: () => {
+                m.historicoPagamentos = m.historicoPagamentos.filter(x => x.id !== pid);
+                recalcularSaldo(m);
+                salvar();
+                _renderModalPagamentos(idx);
+            }}
+        ]);
+    }, 100);
+}
+
+// compatibilidade legada — botão Editar na tabela agora abre histórico de pagamentos
+function abrirEdicao(idx) { abrirHistoricoPagamentos(idx); }
 
 // ═══════════════════════════════════════════════════════════
 //  CONTROLES QTY
