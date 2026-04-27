@@ -3,369 +3,1116 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Sistema Mestre de Aulas</title>
+    <title>Gestão de Aulas</title>
     <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
     <style>
-        :root { 
-            --primary: #2c3e50; --secondary: #27ae60; --danger: #e74c3c; 
-            --warning: #f39c12; --blue: #3498db; --whatsapp: #25D366; 
-            --purple: #6f42c1; --light: #f8f9fa; --dark-overlay: rgba(0,0,0,0.6);
-            --striped: #f4f7f9;
+        :root {
+            --primary: #2c3e50; --secondary: #27ae60; --danger: #e74c3c;
+            --warning: #f39c12; --blue: #3498db; --whatsapp: #25D366;
+            --light: #f8f9fa; --dark-overlay: rgba(0,0,0,0.6);
+            --striped: #f4f7f9; --debt: #e74c3c;
         }
-        
+
+        * { box-sizing: border-box; }
         body { font-family: 'Segoe UI', system-ui, sans-serif; background: #f0f2f5; padding: 15px; color: #333; margin: 0; }
-        .container { max-width: 1250px; margin: auto; background: white; padding: 20px; border-radius: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); }
-        
-        h2 { color: var(--primary); display: flex; justify-content: space-between; align-items: center; font-size: 1.3rem; flex-wrap: wrap; gap: 10px; margin-top: 0; border-bottom: 2px solid #eee; padding-bottom: 10px; }
-        .status-save { font-size: 0.7rem; background: #d4edda; color: #155724; padding: 5px 10px; border-radius: 20px; }
+        .container { max-width: 1400px; margin: auto; background: white; border-radius: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); overflow: hidden; }
 
-        .card-section { background: var(--light); padding: 15px; border-radius: 8px; margin-bottom: 20px; border: 1px solid #ddd; }
+        /* ── HEADER ── */
+        .app-header { background: var(--primary); color: white; padding: 16px 24px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px; }
+        .app-header h1 { margin: 0; font-size: 1.2rem; }
+        .status-save { font-size: 0.7rem; background: rgba(255,255,255,0.15); color: #fff; padding: 5px 12px; border-radius: 20px; }
+
+        /* ── ABAS DE TURMA ── */
+        .tabs-bar { display: flex; align-items: stretch; background: #f8f9fa; border-bottom: 2px solid #e0e0e0; overflow-x: auto; padding: 0 8px; gap: 2px; }
+        .tab-btn {
+            padding: 12px 18px; border: none; background: transparent; cursor: pointer;
+            font-size: 0.85rem; font-weight: bold; color: #666; border-bottom: 3px solid transparent;
+            margin-bottom: -2px; white-space: nowrap; display: flex; align-items: center; gap: 6px;
+            transition: color 0.2s, border-color 0.2s;
+        }
+        .tab-btn:hover { color: var(--primary); }
+        .tab-btn.active { color: var(--primary); border-bottom-color: var(--primary); background: white; }
+        .tab-btn .tab-count { background: #ddd; color: #555; font-size: 0.7rem; padding: 1px 6px; border-radius: 10px; }
+        .tab-btn.active .tab-count { background: var(--primary); color: white; }
+        .tab-add-btn { padding: 10px 14px; border: none; background: transparent; cursor: pointer; color: var(--secondary); font-size: 1.2rem; font-weight: bold; white-space: nowrap; }
+        .tab-add-btn:hover { background: #e8f8ee; }
+
+        /* ── CONTEÚDO DA ABA ── */
+        .tab-content { padding: 20px; }
+
+        /* ── FORMULÁRIO ── */
+        .card-section { background: var(--light); padding: 15px; border-radius: 8px; margin-bottom: 16px; border: 1px solid #ddd; }
         .section-title { font-size: 0.9rem; font-weight: bold; margin-bottom: 10px; display: block; color: var(--primary); }
-
         .form-container { display: grid; grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); gap: 12px; }
         .input-block { display: flex; flex-direction: column; gap: 5px; }
         label { font-size: 0.8rem; font-weight: bold; color: var(--primary); }
-        
-        input { padding: 10px; border: 1px solid #ddd; border-radius: 6px; font-size: 0.9rem; width: 100%; box-sizing: border-box; color: #000 !important; }
-
-        /* CORREÇÃO DO NÚMERO CORTADO */
-        #cortesia { 
-            width: 35px !important; 
-            height: auto !important;
-            min-height: unset !important;
-            padding: 0 !important;
-            margin: 0 !important;
-            text-align: center; 
-            border: none !important; 
-            font-weight: bold; 
-            color: #000 !important; 
-            background: transparent !important;
-            outline: none !important;
+        input[type=text], input[type=number], input[type=date] {
+            padding: 9px 10px; border: 1px solid #ddd; border-radius: 6px;
+            font-size: 0.9rem; width: 100%; color: #000 !important;
         }
-
-        .search-container { margin: 20px 0 10px 0; }
-        .search-input { padding: 12px 15px; width: 100%; border-radius: 8px; border: 2px solid #ddd; font-size: 1rem; box-sizing: border-box; }
-
-        .table-container { overflow-x: auto; margin-top: 10px; border-radius: 8px; border: 1px solid #eee; }
-        table { width: 100%; border-collapse: collapse; font-size: 0.85rem; min-width: 900px; }
-        th { background: var(--primary); color: white; padding: 12px; text-align: left; }
-        td { border-bottom: 1px solid #eee; padding: 10px; vertical-align: middle; transition: background 0.2s; color: #333; }
-        
-        tbody tr:nth-child(even) { background-color: var(--striped); }
-        tbody tr:hover { background-color: #ebf5fb; }
-
-        button { border: none; cursor: pointer; border-radius: 6px; font-weight: bold; transition: 0.2s; color: white; display: flex; align-items: center; justify-content: center; gap: 5px; }
-        .btn-add { background: var(--secondary); width: 100%; grid-column: 1 / -1; padding: 12px; font-size: 1rem; margin-top: 5px; }
-        .btn-action { padding: 8px 10px; min-width: 35px; font-size: 0.9rem; }
-        .btn-check { background: var(--secondary); }
-        .btn-undo { background: var(--warning); }
-        .btn-edit-val { background: none; color: var(--blue); padding: 2px 5px; font-size: 0.7rem; border: 1px dashed var(--blue); margin-top: 4px; display: block; }
-        
-        .footer-actions { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 10px; margin-top: 20px; padding-top: 20px; border-top: 2px solid #eee; }
-        .btn-excel { background: var(--blue); padding: 12px; }
-        .btn-ws-out { background: var(--whatsapp); padding: 12px; }
-        .btn-clear-all { background: var(--danger); padding: 12px; }
-        .summary { margin: 20px 0 10px 0; padding: 15px; background: var(--primary); color: white; border-radius: 8px; text-align: right; font-weight: bold; font-size: 1.1rem; }
-
-        .modal-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: var(--dark-overlay); display: none; align-items: center; justify-content: center; z-index: 1000; padding: 15px; box-sizing: border-box; }
-        .modal-content { background: white; padding: 25px; border-radius: 12px; max-width: 400px; width: 100%; box-shadow: 0 10px 30px rgba(0,0,0,0.3); }
-        .modal-footer { display: flex; justify-content: flex-end; gap: 10px; margin-top: 20px; }
-
         .qty-control { display: flex; align-items: center; gap: 2px; background: white; border: 1px solid #ddd; border-radius: 6px; padding: 4px; width: fit-content; min-width: 90px; justify-content: center; }
         .qty-control span { color: #000 !important; font-weight: bold; min-width: 25px; text-align: center; }
         .btn-qty { color: #333; background: #eee; border: none; width: 25px; height: 25px; border-radius: 4px; cursor: pointer; font-size: 1.1rem; line-height: 1; }
         .btn-qty:hover { background: #ddd; }
+        #cortesia { width: 35px !important; padding: 0 !important; text-align: center; border: none !important; font-weight: bold; color: #000 !important; background: transparent !important; outline: none !important; }
 
-        small { color: #666; font-size: 0.75rem; display: block; }
+        /* Seletor de turma no formulário */
+        .turma-select-form { padding: 9px 10px; border: 1px solid #ddd; border-radius: 6px; font-size: 0.9rem; width: 100%; color: #000; background: white; }
+
+        /* ── BOTÕES GERAIS ── */
+        button { border: none; cursor: pointer; border-radius: 6px; font-weight: bold; transition: 0.2s; color: white; display: inline-flex; align-items: center; justify-content: center; gap: 5px; }
+        .btn-add { background: var(--secondary); width: 100%; grid-column: 1 / -1; padding: 11px; font-size: 1rem; margin-top: 5px; }
+        .btn-action { padding: 7px 9px; min-width: 33px; font-size: 0.88rem; }
+        .btn-check { background: var(--secondary); }
+        .btn-undo { background: var(--warning); }
+        .btn-history { background: var(--blue); }
+        .btn-edit-val { background: none; color: var(--blue); padding: 2px 5px; font-size: 0.7rem; border: 1px dashed var(--blue); margin-top: 4px; color: var(--blue); }
+
+        /* ── BARRA DE TURMAS INLINE (cabeçalho da turma atual) ── */
+        .turma-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; flex-wrap: wrap; gap: 8px; }
+        .turma-title { font-size: 1.05rem; font-weight: bold; color: var(--primary); display: flex; align-items: center; gap: 8px; }
+        .turma-actions { display: flex; gap: 8px; flex-wrap: wrap; }
+        .btn-turma-rename { background: var(--blue); padding: 6px 12px; font-size: 0.8rem; }
+        .btn-turma-delete { background: var(--danger); padding: 6px 12px; font-size: 0.8rem; }
+
+        /* ── SEARCH ── */
+        .search-container { margin-bottom: 10px; }
+        .search-input { padding: 10px 14px; width: 100%; border-radius: 8px; border: 2px solid #ddd; font-size: 0.95rem; color: #333; }
+
+        /* ── TABELA ── */
+        .table-container { overflow-x: auto; border-radius: 8px; border: 1px solid #eee; }
+        table { width: 100%; border-collapse: collapse; font-size: 0.84rem; min-width: 1050px; }
+        th { background: var(--primary); color: white; padding: 11px 12px; text-align: left; white-space: nowrap; }
+        td { border-bottom: 1px solid #eee; padding: 9px 11px; vertical-align: middle; transition: background 0.2s; color: #333; }
+        tbody tr:nth-child(even) { background: var(--striped); }
+        tbody tr:hover { background: #ebf5fb; }
+        tbody tr.row-devedor { background: #fff5f5 !important; }
+        tbody tr.row-devedor:hover { background: #ffe8e8 !important; }
+
+        /* R$/Aula inline */
+        .input-valor-aula { width: 72px; padding: 5px 7px; border: 1px solid #ddd; border-radius: 6px; font-size: 0.85rem; font-weight: bold; color: #2c3e50 !important; text-align: center; background: #f8f9fa; }
+        .input-valor-aula:focus { border-color: var(--blue); background: #fff; outline: none; }
+        .valor-aula-cell { display: flex; flex-direction: column; align-items: flex-start; gap: 2px; }
+        .valor-aula-hint { font-size: 0.65rem; color: #bbb; }
+
+        /* badges */
+        .badge-debt-table { display: inline-block; background: #fdf2f2; color: var(--danger); border: 1px solid #f5c6c6; font-size: 0.73rem; font-weight: bold; padding: 2px 7px; border-radius: 10px; }
+        .badge-ok-table { display: inline-block; background: #eafaf1; color: var(--secondary); border: 1px solid #b7e5c9; font-size: 0.73rem; font-weight: bold; padding: 2px 7px; border-radius: 10px; }
+        .badge-turma { display: inline-block; background: #eaf2ff; color: #2563eb; border: 1px solid #c3d8fc; font-size: 0.7rem; font-weight: bold; padding: 1px 7px; border-radius: 10px; margin: 1px; }
+
+        /* ── RESUMO FINANCEIRO ── */
+        .summary-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 10px; margin: 18px 0 10px 0; }
+        .summary-card { padding: 13px 15px; border-radius: 8px; color: white; font-weight: bold; text-align: center; }
+        .summary-card .lbl { font-size: 0.75rem; opacity: 0.85; margin-bottom: 3px; }
+        .summary-card .val { font-size: 1.15rem; }
+        .card-arrecadado { background: var(--primary); }
+        .card-divida { background: var(--debt); }
+        .card-total { background: var(--secondary); }
+
+        /* ── FOOTER AÇÕES ── */
+        .footer-actions { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 10px; margin-top: 18px; padding-top: 18px; border-top: 2px solid #eee; }
+        .btn-importar { background: #8e44ad; padding: 11px; }
+        .btn-exportar { background: var(--blue); padding: 11px; }
+        .btn-clear-all { background: var(--danger); padding: 11px; }
+
+        /* ── MODAL IMPORTAR/EXPORTAR ── */
+        .io-option-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; margin-top: 10px; }
+        .io-option-btn {
+            display: flex; flex-direction: column; align-items: center; justify-content: center;
+            gap: 10px; padding: 22px 16px; border-radius: 12px; border: 2px solid #e0e0e0;
+            background: #f8f9fa; cursor: pointer; transition: 0.2s; color: #333;
+            font-weight: bold; font-size: 0.88rem; text-align: center;
+        }
+        .io-option-btn:hover { border-color: var(--primary); background: #eef2f7; transform: translateY(-2px); box-shadow: 0 4px 12px rgba(0,0,0,0.1); }
+        .io-option-btn .io-icon { font-size: 2.2rem; line-height: 1; }
+        .io-option-btn .io-label { font-size: 0.95rem; font-weight: bold; color: #2c3e50; }
+        .io-option-btn .io-sub { font-size: 0.75rem; color: #888; font-weight: normal; }
+        .io-option-btn.io-ws:hover { border-color: var(--whatsapp); background: #f0fdf4; }
+        .io-option-btn.io-excel:hover { border-color: #1a7e4a; background: #f0fdf4; }
+
+        /* ── MODAL ── */
+        .modal-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: var(--dark-overlay); display: none; align-items: center; justify-content: center; z-index: 1000; padding: 15px; }
+        .modal-content { background: white; padding: 22px; border-radius: 12px; max-width: 500px; width: 100%; box-shadow: 0 10px 30px rgba(0,0,0,0.3); max-height: 90vh; overflow-y: auto; }
+        .modal-header { font-weight: bold; font-size: 1.05rem; margin-bottom: 14px; color: #333; }
+        .modal-footer { display: flex; justify-content: flex-end; gap: 10px; margin-top: 18px; flex-wrap: wrap; }
+
+        /* HISTÓRICO */
+        .history-empty { text-align: center; color: #999; padding: 20px; font-size: 0.9rem; }
+        .history-badge { font-size: 0.68rem; font-weight: bold; padding: 2px 8px; border-radius: 12px; color: white; }
+        .badge-paga { background: var(--secondary); }
+        .badge-devida { background: var(--danger); }
+
+        /* TOGGLE TIPO PRESENÇA */
+        .tipo-toggle { display: flex; gap: 0; border-radius: 8px; overflow: hidden; border: 2px solid #ddd; margin-top: 10px; }
+        .tipo-toggle label { flex: 1; text-align: center; padding: 9px; cursor: pointer; font-size: 0.85rem; font-weight: bold; color: #666; margin: 0; }
+        .tipo-toggle input[type=radio] { display: none; }
+        .tipo-toggle input[type=radio]:checked + label { color: white; }
+        #tipo-paga:checked + label { background: var(--secondary); }
+        #tipo-devida:checked + label { background: var(--danger); }
+
+        small { color: #666; font-size: 0.74rem; display: block; }
+        .divider { border: none; border-top: 1px solid #eee; margin: 10px 0; }
+
+        /* Aba "Todos" — mostra coluna extra de turma */
+        .col-turma-all { min-width: 110px; }
     </style>
 </head>
 <body>
-
 <div class="container">
-    <h2>
-        Gestão de Aulas
+
+    <!-- HEADER -->
+    <div class="app-header">
+        <h1>🎓 Gestão de Aulas</h1>
         <span class="status-save" id="saveStatus">Sistema Ativo</span>
-    </h2>
-    
-    <div class="card-section" style="background: #fff;">
-        <span class="section-title">👤 Adicionar Aluno</span>
-        <div class="form-container">
-            <div class="input-block">
-                <label>Nome do Aluno</label>
-                <input type="text" id="nome" placeholder="Ex: João">
-            </div>
-            <div class="input-block">
-                <label>Valor Pago (R$)</label>
-                <input type="number" id="valorPago" placeholder="0.00">
-            </div>
-            <div class="input-block">
-                <label>Data do Pgto</label>
-                <input type="date" id="dataPgto">
-            </div>
-            <div class="input-block">
-                <label>R$ por Aula</label>
-                <input type="number" id="valorAula" value="25">
-            </div>
-            <div class="input-block">
-                <label>Aulas Free</label>
-                <div class="qty-control">
-                    <button class="btn-qty" onclick="changeInputQty('cortesia', -1)">-</button>
-                    <input type="number" id="cortesia" value="0" readonly>
-                    <button class="btn-qty" onclick="changeInputQty('cortesia', 1)">+</button>
+    </div>
+
+    <!-- ABAS -->
+    <div class="tabs-bar" id="tabsBar"></div>
+
+    <!-- CONTEÚDO PRINCIPAL -->
+    <div class="tab-content">
+
+        <!-- FORMULÁRIO CADASTRO -->
+        <div class="card-section" style="background:#fff;">
+            <span class="section-title">👤 Adicionar Aluno / Matrícula</span>
+            <div class="form-container">
+                <div class="input-block">
+                    <label>Nome do Aluno</label>
+                    <input type="text" id="nome" placeholder="Ex: João">
                 </div>
+                <div class="input-block">
+                    <label>Turma / Modalidade</label>
+                    <select id="turmaCadastro" class="turma-select-form"></select>
+                </div>
+                <div class="input-block">
+                    <label>Valor Pago (R$)</label>
+                    <input type="number" id="valorPago" placeholder="0.00">
+                </div>
+                <div class="input-block">
+                    <label>Data do Pgto</label>
+                    <input type="date" id="dataPgto">
+                </div>
+                <div class="input-block">
+                    <label>R$ por Aula</label>
+                    <input type="number" id="valorAula" value="25">
+                </div>
+                <div class="input-block">
+                    <label>Aulas Free</label>
+                    <div class="qty-control">
+                        <button class="btn-qty" onclick="changeInputQty('cortesia',-1)">-</button>
+                        <input type="number" id="cortesia" value="0" readonly>
+                        <button class="btn-qty" onclick="changeInputQty('cortesia',1)">+</button>
+                    </div>
+                </div>
+                <button class="btn-add" onclick="adicionarMatricula()">+ Cadastrar</button>
             </div>
-            <button class="btn-add" onclick="adicionarAluno()">+ Cadastrar Aluno</button>
+            <small style="margin-top:8px;color:#888;">💡 Um aluno pode ter múltiplas matrículas em turmas diferentes. Cada matrícula tem saldo e histórico independentes.</small>
         </div>
-    </div>
 
-    <div class="search-container">
-        <input type="text" id="buscaInput" class="search-input" placeholder="🔍 Buscar aluno por nome..." onkeyup="atualizarTabela()">
-    </div>
+        <!-- BUSCA -->
+        <div class="search-container">
+            <input type="text" id="buscaInput" class="search-input" placeholder="🔍 Buscar aluno por nome..." oninput="renderTabela()">
+        </div>
 
-    <div class="table-container">
-        <table id="tabelaAlunos">
-            <thead>
-                <tr>
-                    <th>Aluno</th>
-                    <th>Pagamento</th>
-                    <th>Aulas Free</th>
-                    <th>Saldo</th>
-                    <th>Última Aula</th>
-                    <th>Presença</th>
-                    <th>Ações</th>
-                </tr>
-            </thead>
-            <tbody></tbody>
-        </table>
-    </div>
+        <!-- CABEÇALHO DA TURMA ATIVA -->
+        <div class="turma-header" id="turmaHeader"></div>
 
-    <div class="summary" id="resumoFinanceiro">Total Arrecadado: R$ 0,00</div>
+        <!-- TABELA -->
+        <div class="table-container">
+            <table id="tabelaAlunos">
+                <thead id="tableHead"></thead>
+                <tbody id="tableBody"></tbody>
+            </table>
+        </div>
 
-    <div class="footer-actions">
-        <button class="btn-excel" onclick="exportarExcel()">📊 Excel</button>
-        <button class="btn-ws-out" onclick="enviarWhatsapp()">📲 WhatsApp Backup</button>
-        <button class="btn-clear-all" onclick="confirmarLimparTudo()">🗑️ Apagar Tudo</button>
+        <!-- RESUMO -->
+        <div class="summary-grid">
+            <div class="summary-card card-arrecadado">
+                <div class="lbl">💰 Total Arrecadado</div>
+                <div class="val" id="totalArrecadado">R$ 0,00</div>
+            </div>
+            <div class="summary-card card-divida">
+                <div class="lbl">⚠️ Total a Receber (Dívidas)</div>
+                <div class="val" id="totalDivida">R$ 0,00</div>
+            </div>
+            <div class="summary-card card-total">
+                <div class="lbl">📊 Total (Pago + Devido)</div>
+                <div class="val" id="totalGeral">R$ 0,00</div>
+            </div>
+        </div>
+
+        <!-- AÇÕES RODAPÉ -->
+        <div class="footer-actions">
+            <button class="btn-importar" onclick="abrirModalImportar()">📥 Importar</button>
+            <button class="btn-exportar" onclick="abrirModalExportar()">📤 Exportar</button>
+            <button class="btn-clear-all" onclick="confirmarLimparTudo()">🗑️ Apagar Tudo</button>
+        </div>
     </div>
 </div>
 
+<!-- INPUT OCULTO PARA IMPORTAR ARQUIVO -->
+<input type="file" id="fileInputJson"  accept=".json,.txt" style="display:none" onchange="importarDoArquivoJson(event)">
+<input type="file" id="fileInputExcel" accept=".xlsx,.xls"  style="display:none" onchange="importarDoArquivoExcel(event)">
+
+<!-- MODAL PRINCIPAL -->
 <div id="modalApp" class="modal-overlay">
     <div class="modal-content">
-        <div id="modalHeader" style="font-weight:bold; font-size:1.1rem; margin-bottom:15px; color: #333;">Título</div>
-        <div id="modalBody" style="color: #333;">Corpo</div>
+        <div class="modal-header" id="modalHeader"></div>
+        <div id="modalBody" style="color:#333;"></div>
         <div class="modal-footer" id="modalFooter"></div>
     </div>
 </div>
 
 <script>
-    let alunos = [];
-    let indexTemp = null;
+// ═══════════════════════════════════════════════════════════
+//  ESTADO GLOBAL
+// ═══════════════════════════════════════════════════════════
+let turmas     = [];
+let matriculas = [];
+let turmaAtiva = '__all__';
+let tempIdx    = null;
 
+// ═══════════════════════════════════════════════════════════
+//  PERSISTÊNCIA
+// ═══════════════════════════════════════════════════════════
+function salvar() {
+    localStorage.setItem('gc_turmas',     JSON.stringify(turmas));
+    localStorage.setItem('gc_matriculas', JSON.stringify(matriculas));
+}
+
+function migrarDadosAntigos() {
+    const legado = localStorage.getItem('meusAlunos');
+    if (!legado) return;
+    const antigos = JSON.parse(legado);
+    if (!antigos || !antigos.length) return;
+    const turmaGeral = { id: 'turma_legado', nome: 'Geral' };
+    turmas.push(turmaGeral);
+    antigos.forEach(a => {
+        matriculas.push({
+            id: 'mat_' + (a.id || Date.now() + Math.random()),
+            alunoNome: a.nome,
+            turmaId: turmaGeral.id,
+            valorPago: a.valorPago || 0,
+            dataPgto: a.dataPgto || '',
+            valorAula: a.valorAula || 25,
+            cortesia: a.cortesia || 0,
+            restantes: a.restantes || 0,
+            ultimaAula: a.ultimaAula || null,
+            historicoPresencas: a.historicoPresencas || [],
+            devidaTotal: a.devidaTotal || 0,
+            aulasDevidas: a.aulasDevidas || 0
+        });
+    });
+    localStorage.removeItem('meusAlunos');
+    salvar();
+}
+
+window.onload = () => {
+    const t = localStorage.getItem('gc_turmas');
+    const m = localStorage.getItem('gc_matriculas');
+    if (t) turmas     = JSON.parse(t);
+    if (m) matriculas = JSON.parse(m);
+    if (!turmas.length) migrarDadosAntigos();
+    if (!turmas.length) {
+        turmas = [
+            { id: uid(), nome: 'Turma A' },
+            { id: uid(), nome: 'Turma B' },
+            { id: uid(), nome: 'Particular' }
+        ];
+        salvar();
+    }
     document.getElementById('dataPgto').valueAsDate = new Date();
+    renderTudo();
+};
 
-    window.onload = () => {
-        const dados = localStorage.getItem('meusAlunos');
-        if (dados) {
-            alunos = JSON.parse(dados);
-            atualizarTabela();
+// ═══════════════════════════════════════════════════════════
+//  UTILS
+// ═══════════════════════════════════════════════════════════
+function uid() { return 'id_' + Date.now() + '_' + Math.floor(Math.random() * 9999); }
+function fmt(v) { return (v || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2 }); }
+function formatDate(s) {
+    if (!s) return '-';
+    return new Date(s + 'T12:00:00').toLocaleDateString('pt-BR');
+}
+function nomeTurma(id) {
+    const t = turmas.find(t => t.id === id);
+    return t ? t.nome : '—';
+}
+function matriculasDaTurma(turmaId) {
+    if (turmaId === '__all__') return matriculas;
+    return matriculas.filter(m => m.turmaId === turmaId);
+}
+
+// ═══════════════════════════════════════════════════════════
+//  MODAL
+// ═══════════════════════════════════════════════════════════
+function openModal(titulo, corpoHTML, botoes) {
+    document.getElementById('modalHeader').innerText = titulo;
+    document.getElementById('modalBody').innerHTML = corpoHTML;
+    const footer = document.getElementById('modalFooter');
+    footer.innerHTML = '';
+    botoes.forEach(btn => {
+        const b = document.createElement('button');
+        b.innerText = btn.label;
+        b.style.cssText = `background:${btn.color||'#95a5a6'};padding:8px 15px;border-radius:6px;font-weight:bold;color:white;border:none;cursor:pointer;`;
+        b.onclick = () => { if (btn.action) btn.action(); if (btn.close !== false) closeModal(); };
+        footer.appendChild(b);
+    });
+    document.getElementById('modalApp').style.display = 'flex';
+}
+function closeModal() { document.getElementById('modalApp').style.display = 'none'; }
+
+// ═══════════════════════════════════════════════════════════
+//  RENDER PRINCIPAL
+// ═══════════════════════════════════════════════════════════
+function renderTudo() {
+    renderAbas();
+    renderSelectTurma();
+    renderCabecalhoTurma();
+    renderTabela();
+}
+
+function renderAbas() {
+    const bar = document.getElementById('tabsBar');
+    bar.innerHTML = '';
+    const btnAll = document.createElement('button');
+    btnAll.className = 'tab-btn' + (turmaAtiva === '__all__' ? ' active' : '');
+    const countAll = matriculas.length;
+    btnAll.innerHTML = `🗂️ Todos <span class="tab-count">${countAll}</span>`;
+    btnAll.onclick = () => { turmaAtiva = '__all__'; renderTudo(); };
+    bar.appendChild(btnAll);
+    turmas.forEach(t => {
+        const btn = document.createElement('button');
+        btn.className = 'tab-btn' + (turmaAtiva === t.id ? ' active' : '');
+        const count = matriculas.filter(m => m.turmaId === t.id).length;
+        btn.innerHTML = `${t.nome} <span class="tab-count">${count}</span>`;
+        btn.onclick = () => { turmaAtiva = t.id; renderTudo(); };
+        bar.appendChild(btn);
+    });
+    const btnNova = document.createElement('button');
+    btnNova.className = 'tab-add-btn';
+    btnNova.title = 'Nova turma';
+    btnNova.innerHTML = '＋ Turma';
+    btnNova.onclick = criarTurma;
+    bar.appendChild(btnNova);
+}
+
+function renderSelectTurma() {
+    const sel = document.getElementById('turmaCadastro');
+    const valorAtual = sel.value;
+    sel.innerHTML = '';
+    turmas.forEach(t => {
+        const opt = document.createElement('option');
+        opt.value = t.id;
+        opt.textContent = t.nome;
+        sel.appendChild(opt);
+    });
+    if (turmaAtiva !== '__all__' && turmas.find(t => t.id === turmaAtiva)) {
+        sel.value = turmaAtiva;
+    } else if (valorAtual && turmas.find(t => t.id === valorAtual)) {
+        sel.value = valorAtual;
+    }
+}
+
+function renderCabecalhoTurma() {
+    const div = document.getElementById('turmaHeader');
+    if (turmaAtiva === '__all__') {
+        div.innerHTML = `<div class="turma-title">🗂️ Todas as turmas e matrículas</div>`;
+        return;
+    }
+    const t = turmas.find(t => t.id === turmaAtiva);
+    if (!t) return;
+    div.innerHTML = `
+        <div class="turma-title">📌 ${t.nome}</div>
+        <div class="turma-actions">
+            <button class="btn-turma-rename" onclick="renomearTurma('${t.id}')">✏️ Renomear</button>
+            <button class="btn-turma-delete" onclick="excluirTurma('${t.id}')">🗑️ Excluir turma</button>
+        </div>`;
+}
+
+function renderTabela() {
+    const busca  = document.getElementById('buscaInput').value.toLowerCase();
+    const isAll  = turmaAtiva === '__all__';
+    const lista  = matriculasDaTurma(turmaAtiva)
+        .filter(m => m.alunoNome.toLowerCase().includes(busca))
+        .slice()
+        .sort((a, b) => a.alunoNome.localeCompare(b.alunoNome));
+
+    document.getElementById('tableHead').innerHTML = `
+        <tr>
+            <th>Aluno</th>
+            ${isAll ? '<th class="col-turma-all">Turma</th>' : ''}
+            <th>Pagamento</th>
+            <th>R$/Aula</th>
+            <th>Dívida</th>
+            <th>Aulas Free</th>
+            <th>Saldo</th>
+            <th>Última Aula</th>
+            <th>Ações</th>
+        </tr>`;
+
+    const tbody = document.getElementById('tableBody');
+    tbody.innerHTML = '';
+
+    let totalArr = 0, totalDiv = 0;
+    matriculasDaTurma(turmaAtiva).forEach(m => {
+        totalArr += m.valorPago || 0;
+        totalDiv += m.devidaTotal || 0;
+    });
+
+    lista.forEach(m => {
+        const idx = matriculas.indexOf(m);
+        const temDivida = (m.devidaTotal || 0) > 0;
+        const ultimaStr = m.historicoPresencas && m.historicoPresencas.length
+            ? formatDate(m.historicoPresencas[m.historicoPresencas.length - 1].data)
+            : formatDate(m.ultimaAula);
+        const saldoColor = m.restantes === 0 ? 'var(--danger)' : 'var(--secondary)';
+        const dividaBadge = temDivida
+            ? `<span class="badge-debt-table">⚠️ R$ ${fmt(m.devidaTotal)}</span><small>${m.aulasDevidas} aula(s)</small>`
+            : `<span class="badge-ok-table">✔ Em dia</span>`;
+
+        const tr = document.createElement('tr');
+        if (temDivida) tr.className = 'row-devedor';
+        tr.innerHTML = `
+            <td><strong>${m.alunoNome}</strong></td>
+            ${isAll ? `<td><span class="badge-turma">${nomeTurma(m.turmaId)}</span></td>` : ''}
+            <td>
+                R$ ${fmt(m.valorPago)}
+                <small>${formatDate(m.dataPgto)}</small>
+                <button class="btn-edit-val" onclick="abrirEdicao(${idx})">Editar</button>
+            </td>
+            <td>
+                <div class="valor-aula-cell">
+                    <input type="number" class="input-valor-aula" value="${m.valorAula}" min="0.01" step="0.01"
+                        onblur="alterarValorAula(${idx}, this.value)"
+                        onkeydown="if(event.key==='Enter') this.blur()">
+                    <span class="valor-aula-hint">↵ confirmar</span>
+                </div>
+            </td>
+            <td>${dividaBadge}</td>
+            <td>
+                <div class="qty-control" style="min-width:unset;">
+                    <button class="btn-qty" onclick="changeFreeTable(${idx},-1)">-</button>
+                    <span>${m.cortesia}</span>
+                    <button class="btn-qty" onclick="changeFreeTable(${idx},1)">+</button>
+                </div>
+            </td>
+            <td><b style="color:${saldoColor}">${m.restantes} aulas</b></td>
+            <td>${ultimaStr}</td>
+            <td>
+                <div style="display:flex;gap:5px;flex-wrap:wrap;">
+                    <button class="btn-action btn-check"    title="Marcar Presença"  onclick="abrirModalPresenca(${idx})">✅</button>
+                    <button class="btn-action btn-undo"     title="Desfazer Última"  onclick="desfazerUltima(${idx})">↩️</button>
+                    <button class="btn-action btn-history"  title="Histórico"        onclick="abrirHistorico(${idx})">📋</button>
+                    <button class="btn-action" style="background:var(--danger)" title="Excluir matrícula" onclick="confirmarRemover(${idx})">🗑️</button>
+                </div>
+            </td>`;
+        tbody.appendChild(tr);
+    });
+
+    if (!lista.length) {
+        const colSpan = isAll ? 9 : 8;
+        tbody.innerHTML = `<tr><td colspan="${colSpan}" style="text-align:center;padding:30px;color:#aaa;">Nenhuma matrícula encontrada.</td></tr>`;
+    }
+
+    document.getElementById('totalArrecadado').innerText = `R$ ${fmt(totalArr)}`;
+    document.getElementById('totalDivida').innerText     = `R$ ${fmt(totalDiv)}`;
+    document.getElementById('totalGeral').innerText      = `R$ ${fmt(totalArr + totalDiv)}`;
+
+    salvar();
+}
+
+// ═══════════════════════════════════════════════════════════
+//  TURMAS
+// ═══════════════════════════════════════════════════════════
+function criarTurma() {
+    openModal('Nova Turma', `
+        <label style="color:#333;font-size:.85rem;font-weight:bold;">Nome da turma:</label>
+        <input type="text" id="novaTurmaInput" placeholder="Ex: Turma C" style="margin-top:8px;padding:10px;width:100%;border:1px solid #ddd;border-radius:6px;color:#333;">
+    `, [
+        { label: 'Cancelar' },
+        { label: '✅ Criar', color: 'var(--secondary)', action: () => {
+            const nome = document.getElementById('novaTurmaInput').value.trim();
+            if (!nome) return;
+            const t = { id: uid(), nome };
+            turmas.push(t);
+            turmaAtiva = t.id;
+            salvar();
+            renderTudo();
+        }}
+    ]);
+}
+
+function renomearTurma(id) {
+    const t = turmas.find(t => t.id === id);
+    openModal('Renomear Turma', `
+        <label style="color:#333;font-size:.85rem;font-weight:bold;">Novo nome:</label>
+        <input type="text" id="renomearInput" value="${t.nome}" style="margin-top:8px;padding:10px;width:100%;border:1px solid #ddd;border-radius:6px;color:#333;">
+    `, [
+        { label: 'Cancelar' },
+        { label: '✅ Salvar', color: 'var(--blue)', action: () => {
+            const novo = document.getElementById('renomearInput').value.trim();
+            if (!novo) return;
+            t.nome = novo;
+            salvar();
+            renderTudo();
+        }}
+    ]);
+}
+
+function excluirTurma(id) {
+    const t = turmas.find(t => t.id === id);
+    const count = matriculas.filter(m => m.turmaId === id).length;
+    openModal('Excluir Turma', `
+        <p style="color:#333;">Excluir a turma <b>${t.nome}</b>?</p>
+        ${count ? `<p style="color:var(--danger);">⚠️ Isso também removerá <b>${count} matrícula(s)</b> vinculada(s).</p>` : ''}
+    `, [
+        { label: 'Cancelar' },
+        { label: '🗑️ Excluir', color: 'var(--danger)', action: () => {
+            turmas = turmas.filter(t => t.id !== id);
+            matriculas = matriculas.filter(m => m.turmaId !== id);
+            turmaAtiva = '__all__';
+            salvar();
+            renderTudo();
+        }}
+    ]);
+}
+
+// ═══════════════════════════════════════════════════════════
+//  MATRÍCULAS — CRUD
+// ═══════════════════════════════════════════════════════════
+function adicionarMatricula() {
+    const nome      = document.getElementById('nome').value.trim();
+    const turmaId   = document.getElementById('turmaCadastro').value;
+    const valorPago = parseFloat(document.getElementById('valorPago').value) || 0;
+    const dataPgto  = document.getElementById('dataPgto').value;
+    const valorAula = parseFloat(document.getElementById('valorAula').value) || 25;
+    const cortesia  = parseInt(document.getElementById('cortesia').value) || 0;
+
+    if (!nome) { openModal('Erro', 'Preencha o nome do aluno.', [{ label: 'Ok' }]); return; }
+    if (!turmaId) { openModal('Erro', 'Selecione uma turma.', [{ label: 'Ok' }]); return; }
+
+    matriculas.push({
+        id: uid(), alunoNome: nome, turmaId,
+        valorPago, dataPgto, valorAula, cortesia,
+        restantes: Math.floor(valorPago / valorAula) + cortesia,
+        ultimaAula: null, historicoPresencas: [],
+        devidaTotal: 0, aulasDevidas: 0
+    });
+
+    turmaAtiva = turmaId;
+    document.getElementById('buscaInput').value = '';
+    limparCampos();
+    renderTudo();
+}
+
+function confirmarRemover(idx) {
+    const m = matriculas[idx];
+    openModal('Excluir Matrícula', `
+        Remover matrícula de <b>${m.alunoNome}</b> na turma <b>${nomeTurma(m.turmaId)}</b> e todo o histórico?
+    `, [
+        { label: 'Não' },
+        { label: 'Excluir', color: 'var(--danger)', action: () => { matriculas.splice(idx, 1); renderTudo(); }}
+    ]);
+}
+
+// ═══════════════════════════════════════════════════════════
+//  VALOR DA AULA — INLINE
+// ═══════════════════════════════════════════════════════════
+function alterarValorAula(idx, novoValor) {
+    const nv = parseFloat(novoValor);
+    if (!nv || nv <= 0) return;
+    const m = matriculas[idx];
+    const consumidas = (m.historicoPresencas || []).filter(h => h.tipo === 'paga').length;
+    m.valorAula = nv;
+    m.restantes = Math.max(0, Math.floor(m.valorPago / nv) + m.cortesia - consumidas);
+    renderTabela();
+}
+
+// ═══════════════════════════════════════════════════════════
+//  PRESENÇA
+// ═══════════════════════════════════════════════════════════
+function abrirModalPresenca(idx) {
+    tempIdx = idx;
+    const m = matriculas[idx];
+    const hoje = new Date().toISOString().split('T')[0];
+    openModal(`Marcar Presença — ${m.alunoNome} (${nomeTurma(m.turmaId)})`, `
+        <label style="color:#333;font-size:.85rem;font-weight:bold;">Data da Aula:</label>
+        <input type="date" id="dataPresencaInput" value="${hoje}" style="margin-top:8px;padding:10px;width:100%;box-sizing:border-box;color:#333;border:1px solid #ddd;border-radius:6px;">
+        <div style="margin-top:12px;">
+            <label style="color:#333;font-size:.85rem;font-weight:bold;">Tipo de presença:</label>
+            <div class="tipo-toggle">
+                <input type="radio" name="tipoPresenca" id="tipo-paga" value="paga" ${m.restantes > 0 ? 'checked' : ''}>
+                <label for="tipo-paga">✅ Aula Paga</label>
+                <input type="radio" name="tipoPresenca" id="tipo-devida" value="devida" ${m.restantes <= 0 ? 'checked' : ''}>
+                <label for="tipo-devida">⚠️ A Dever</label>
+            </div>
+            <small style="margin-top:6px;color:#888;">"A Dever" gera débito de <b>R$ ${fmt(m.valorAula)}</b>.</small>
+        </div>
+    `, [
+        { label: 'Cancelar' },
+        { label: 'Confirmar ✅', color: 'var(--secondary)', action: salvarPresenca }
+    ]);
+}
+
+function salvarPresenca() {
+    const data = document.getElementById('dataPresencaInput').value;
+    const tipo = document.querySelector('input[name="tipoPresenca"]:checked').value;
+    const m = matriculas[tempIdx];
+    if (tipo === 'paga') {
+        if (m.restantes <= 0) {
+            openModal('Saldo Esgotado', `${m.alunoNome} não possui saldo. Use "A Dever" ou edite o pagamento.`, [{ label: 'Ok' }]);
+            return;
         }
-    };
-
-    function openModal(titulo, corpoHTML, botoes) {
-        document.getElementById('modalHeader').innerText = titulo;
-        document.getElementById('modalBody').innerHTML = corpoHTML;
-        const footer = document.getElementById('modalFooter');
-        footer.innerHTML = '';
-        botoes.forEach(btn => {
-            const b = document.createElement('button');
-            b.innerText = btn.label;
-            b.style.background = btn.color || '#95a5a6';
-            b.style.padding = '8px 15px';
-            b.onclick = () => { if(btn.action) btn.action(); closeModal(); };
-            footer.appendChild(b);
-        });
-        document.getElementById('modalApp').style.display = 'flex';
+        m.restantes--;
+    } else {
+        m.devidaTotal = (m.devidaTotal || 0) + m.valorAula;
+        m.aulasDevidas = (m.aulasDevidas || 0) + 1;
     }
+    m.ultimaAula = data;
+    m.historicoPresencas.push({ data, tipo });
+    renderTabela();
+}
 
-    function closeModal() { document.getElementById('modalApp').style.display = 'none'; }
-
-    function formatDate(dateStr) {
-        if(!dateStr) return "-";
-        const d = new Date(dateStr + 'T12:00:00');
-        return d.toLocaleDateString('pt-BR');
+function desfazerUltima(idx) {
+    const m = matriculas[idx];
+    if (!m.historicoPresencas || !m.historicoPresencas.length) {
+        openModal('Sem histórico', 'Não há presenças para desfazer.', [{ label: 'Ok' }]); return;
     }
-
-    function atualizarTabela() {
-        const tbody = document.querySelector('#tabelaAlunos tbody');
-        const termoBusca = document.getElementById('buscaInput').value.toLowerCase();
-        let total = 0;
-        tbody.innerHTML = '';
-        
-        alunos.sort((a, b) => a.nome.localeCompare(b.nome));
-
-        alunos.forEach((a, idx) => {
-            total += a.valorPago;
-            if (a.nome.toLowerCase().includes(termoBusca)) {
-                tbody.innerHTML += `
-                    <tr>
-                        <td><strong>${a.nome}</strong></td>
-                        <td>
-                            R$ ${a.valorPago.toFixed(2)}
-                            <small>${formatDate(a.dataPgto)}</small>
-                            <button class="btn-edit-val" onclick="abrirEdicao(${idx})">Editar</button>
-                        </td>
-                        <td>
-                            <div class="qty-control" style="min-width: unset;">
-                                <button class="btn-qty" onclick="changeFreeTable(${idx}, -1)">-</button>
-                                <span>${a.cortesia}</span>
-                                <button class="btn-qty" onclick="changeFreeTable(${idx}, 1)">+</button>
-                            </div>
-                        </td>
-                        <td><b style="color: ${a.restantes === 0 ? 'var(--danger)' : 'var(--secondary)'}">${a.restantes} aulas</b></td>
-                        <td>${formatDate(a.ultimaAula)}</td>
-                        <td>
-                            <div style="display:flex; gap:5px;">
-                                <button class="btn-action btn-check" title="Marcar Presença" onclick="abrirModalPresenca(${idx})">✅</button>
-                                <button class="btn-action btn-undo" title="Desfazer Última" onclick="gerenciarPresenca(${idx}, 'sub')">↩️</button>
-                            </div>
-                        </td>
-                        <td>
-                            <button class="btn-action" style="background:var(--danger)" onclick="confirmarRemover(${idx})">🗑️</button>
-                        </td>
-                    </tr>`;
+    const ultima = m.historicoPresencas[m.historicoPresencas.length - 1];
+    const tipoLabel = ultima.tipo === 'paga' ? 'aula paga' : 'aula a dever';
+    openModal('Desfazer Presença', `Desfazer <b>${tipoLabel}</b> do dia <b>${formatDate(ultima.data)}</b> de <b>${m.alunoNome}</b>?`, [
+        { label: 'Cancelar' },
+        { label: 'Desfazer ↩️', color: 'var(--warning)', action: () => {
+            m.historicoPresencas.pop();
+            if (ultima.tipo === 'paga') {
+                const max = Math.floor(m.valorPago / m.valorAula) + m.cortesia;
+                if (m.restantes < max) m.restantes++;
+            } else {
+                m.devidaTotal  = Math.max(0, (m.devidaTotal  || 0) - m.valorAula);
+                m.aulasDevidas = Math.max(0, (m.aulasDevidas || 0) - 1);
             }
+            m.ultimaAula = m.historicoPresencas.length
+                ? m.historicoPresencas[m.historicoPresencas.length - 1].data : null;
+            renderTabela();
+        }}
+    ]);
+}
+
+// ═══════════════════════════════════════════════════════════
+//  HISTÓRICO
+// ═══════════════════════════════════════════════════════════
+function abrirHistorico(idx) {
+    const m = matriculas[idx];
+    const hist = m.historicoPresencas || [];
+    let itens = '';
+    if (!hist.length) {
+        itens = `<p class="history-empty">Nenhuma presença registrada ainda.</p>`;
+    } else {
+        [...hist].reverse().forEach(h => {
+            const isPaga = h.tipo === 'paga';
+            const badge = isPaga
+                ? `<span class="history-badge badge-paga">Paga</span>`
+                : `<span class="history-badge badge-devida">A Dever</span>`;
+            const valorStr = isPaga
+                ? `<span style="color:var(--secondary);font-size:.8rem;">-R$ ${fmt(m.valorAula)}</span>`
+                : `<span style="color:var(--danger);font-size:.8rem;">+R$ ${fmt(m.valorAula)} (deve)</span>`;
+            itens += `<li style="list-style:none;display:flex;align-items:center;justify-content:space-between;padding:8px 10px;border-radius:6px;margin-bottom:6px;font-size:.88rem;${isPaga?'background:#eafaf1;border-left:4px solid var(--secondary)':'background:#fdf2f2;border-left:4px solid var(--danger)'}">
+                <span>📅 ${formatDate(h.data)}</span>
+                <div style="display:flex;gap:8px;align-items:center;">${valorStr}${badge}</div>
+            </li>`;
         });
-        document.getElementById('resumoFinanceiro').innerText = `Total Arrecadado: R$ ${total.toLocaleString('pt-BR', {minimumFractionDigits: 2})}`;
-        localStorage.setItem('meusAlunos', JSON.stringify(alunos));
     }
+    const resumoDevida = (m.devidaTotal || 0) > 0
+        ? `<div style="background:#fdf2f2;border:1px solid #f5c6c6;border-radius:6px;padding:10px;margin-bottom:10px;font-size:.85rem;">
+            ⚠️ <b>Débito pendente:</b> ${m.aulasDevidas} aula(s) — <b style="color:var(--danger)">R$ ${fmt(m.devidaTotal)}</b>
+            <button onclick="abrirQuitarDivida(${idx})" style="margin-left:10px;background:var(--secondary);color:white;border:none;border-radius:4px;padding:4px 10px;cursor:pointer;font-size:.8rem;font-weight:bold;">Quitar</button>
+           </div>`
+        : `<div style="background:#eafaf1;border:1px solid #b7e5c9;border-radius:6px;padding:8px 10px;margin-bottom:10px;font-size:.85rem;">✔ Sem dívidas pendentes.</div>`;
 
-    function adicionarAluno() {
-        const nome = document.getElementById('nome').value;
-        const valorPago = parseFloat(document.getElementById('valorPago').value);
-        const dataPgto = document.getElementById('dataPgto').value;
-        const valorAula = parseFloat(document.getElementById('valorAula').value) || 25;
-        const cortesia = parseInt(document.getElementById('cortesia').value) || 0;
+    openModal(`📋 Histórico — ${m.alunoNome} (${nomeTurma(m.turmaId)})`, `
+        <div style="font-size:.85rem;color:#666;margin-bottom:10px;">
+            Total: <b>${hist.length}</b> | Pagas: <b style="color:var(--secondary)">${hist.filter(h=>h.tipo==='paga').length}</b> | A dever: <b style="color:var(--danger)">${hist.filter(h=>h.tipo==='devida').length}</b>
+        </div>
+        ${resumoDevida}
+        <hr class="divider">
+        <div style="max-height:280px;overflow-y:auto;"><ul style="padding:0;margin:0;">${itens}</ul></div>
+    `, [{ label: 'Fechar' }]);
+}
 
-        if (!nome || isNaN(valorPago)) {
-            openModal("Erro", "Preencha nome e valor.", [{label: "Ok"}]);
-            return;
-        }
-
-        alunos.push({ 
-            id: Date.now(), nome, valorPago, dataPgto, valorAula, cortesia, 
-            restantes: Math.floor(valorPago / valorAula) + cortesia,
-            ultimaAula: null
-        });
-        
-        document.getElementById('buscaInput').value = ''; 
-        atualizarTabela();
-        limparCampos();
-    }
-
-    function abrirModalPresenca(index) {
-        if(alunos[index].restantes <= 0) {
-            openModal("Saldo Esgotado", "O aluno não possui mais aulas.", [{label: "Ok"}]);
-            return;
-        }
-        indexTemp = index;
-        const hoje = new Date().toISOString().split('T')[0];
-        const html = `
-            <label style="color: #333">Data da Aula:</label>
-            <input type="date" id="dataPresencaInput" value="${hoje}" style="margin-top:10px; padding: 10px; width: 100%; box-sizing: border-box; color: #333;">
-        `;
-        openModal("Marcar Presença", html, [
-            { label: "Cancelar" },
-            { label: "Confirmar ✅", color: 'var(--secondary)', action: salvarPresenca }
-        ]);
-    }
-
-    function salvarPresenca() {
-        const data = document.getElementById('dataPresencaInput').value;
-        alunos[indexTemp].restantes--;
-        alunos[indexTemp].ultimaAula = data;
-        atualizarTabela();
-    }
-
-    function abrirEdicao(index) {
-        indexTemp = index;
-        const a = alunos[index];
-        const html = `
-            <label style="color: #333">Valor Pago (R$):</label>
-            <input type="number" id="editVal" value="${a.valorPago}" step="0.01" style="margin-bottom:10px; padding:10px; width:100%; box-sizing:border-box; color: #333;">
-            <label style="color: #333">Data Pagamento:</label>
-            <input type="date" id="editData" value="${a.dataPgto}" style="padding:10px; width:100%; box-sizing:border-box; color: #333;">
-        `;
-        openModal("Editar Pagamento", html, [
-            { label: "Cancelar" },
-            { label: "Salvar", color: 'var(--blue)', action: () => {
-                const nv = parseFloat(document.getElementById('editVal').value);
-                const nd = document.getElementById('editData').value;
-                const aulasUsadas = (Math.floor(a.valorPago / a.valorAula) + a.cortesia) - a.restantes;
-                a.valorPago = nv;
-                a.dataPgto = nd;
-                const novoTotal = Math.floor(nv / a.valorAula) + a.cortesia;
-                a.restantes = Math.max(0, novoTotal - aulasUsadas);
-                atualizarTabela();
+// ═══════════════════════════════════════════════════════════
+//  QUITAR DÍVIDA
+// ═══════════════════════════════════════════════════════════
+function abrirQuitarDivida(idx) {
+    closeModal();
+    const m = matriculas[idx];
+    setTimeout(() => {
+        openModal('Quitar Dívida', `
+            <p style="color:#333;">Quitar dívida de <b>${m.alunoNome}</b> (${nomeTurma(m.turmaId)})?</p>
+            <p style="color:var(--danger);font-weight:bold;">R$ ${fmt(m.devidaTotal)} — ${m.aulasDevidas} aula(s)</p>
+            <small style="color:#888;">O débito será zerado e o histórico mantido.</small>
+        `, [
+            { label: 'Cancelar' },
+            { label: '✅ Quitar', color: 'var(--secondary)', action: () => {
+                m.valorPago += m.devidaTotal;
+                m.devidaTotal = 0;
+                m.aulasDevidas = 0;
+                m.historicoPresencas.forEach(h => { if (h.tipo === 'devida') h.tipo = 'paga'; });
+                renderTabela();
             }}
         ]);
-    }
+    }, 100);
+}
 
-    function changeInputQty(id, delta) {
-        const i = document.getElementById(id);
-        i.value = Math.max(0, parseInt(i.value) + delta);
-    }
+// ═══════════════════════════════════════════════════════════
+//  EDITAR PAGAMENTO
+// ═══════════════════════════════════════════════════════════
+function abrirEdicao(idx) {
+    tempIdx = idx;
+    const m = matriculas[idx];
+    let opcoesTorma = turmas.map(t => `<option value="${t.id}" ${t.id===m.turmaId?'selected':''}>${t.nome}</option>`).join('');
+    openModal('Editar Pagamento / Turma', `
+        <label style="color:#333;margin-bottom:4px;display:block;">Turma:</label>
+        <select id="editTurma" style="padding:9px;width:100%;border:1px solid #ddd;border-radius:6px;color:#333;margin-bottom:12px;">${opcoesTorma}</select>
+        <label style="color:#333;margin-bottom:4px;display:block;">Valor Pago (R$):</label>
+        <input type="number" id="editVal" value="${m.valorPago}" step="0.01" style="margin-bottom:12px;padding:10px;width:100%;border:1px solid #ddd;border-radius:6px;color:#333;">
+        <label style="color:#333;margin-bottom:4px;display:block;">Data Pagamento:</label>
+        <input type="date" id="editData" value="${m.dataPgto}" style="padding:10px;width:100%;border:1px solid #ddd;border-radius:6px;color:#333;">
+    `, [
+        { label: 'Cancelar' },
+        { label: 'Salvar', color: 'var(--blue)', action: () => {
+            const nv = parseFloat(document.getElementById('editVal').value) || 0;
+            const nd = document.getElementById('editData').value;
+            const nt = document.getElementById('editTurma').value;
+            const consumidas = (m.historicoPresencas || []).filter(h => h.tipo === 'paga').length;
+            m.valorPago = nv;
+            m.dataPgto  = nd;
+            m.turmaId   = nt;
+            m.restantes = Math.max(0, Math.floor(nv / m.valorAula) + m.cortesia - consumidas);
+            turmaAtiva = nt;
+            renderTudo();
+        }}
+    ]);
+}
 
-    function changeFreeTable(index, delta) {
-        const novo = Math.max(0, alunos[index].cortesia + delta);
-        if (novo !== alunos[index].cortesia) {
-            alunos[index].cortesia = novo;
-            alunos[index].restantes += delta;
-            atualizarTabela();
-        }
-    }
+// ═══════════════════════════════════════════════════════════
+//  CONTROLES QTY
+// ═══════════════════════════════════════════════════════════
+function changeInputQty(id, delta) {
+    const i = document.getElementById(id);
+    i.value = Math.max(0, parseInt(i.value) + delta);
+}
 
-    function gerenciarPresenca(index, acao) {
-        if (acao === 'sub') {
-            const max = Math.floor(alunos[index].valorPago / alunos[index].valorAula) + alunos[index].cortesia;
-            if (alunos[index].restantes < max) {
-                alunos[index].restantes++;
-                atualizarTabela();
+function changeFreeTable(idx, delta) {
+    const m = matriculas[idx];
+    const novo = Math.max(0, m.cortesia + delta);
+    if (novo !== m.cortesia) {
+        m.cortesia = novo;
+        m.restantes = Math.max(0, m.restantes + delta);
+        renderTabela();
+    }
+}
+
+// ═══════════════════════════════════════════════════════════
+//  LIMPAR / RESETAR
+// ═══════════════════════════════════════════════════════════
+function confirmarLimparTudo() {
+    openModal('⚠️ Cuidado', 'Apagar TODOS os dados, turmas e matrículas? Isso não pode ser desfeito.', [
+        { label: 'Cancelar' },
+        { label: 'Apagar Tudo', color: 'var(--danger)', action: () => {
+            turmas = []; matriculas = [];
+            localStorage.clear();
+            turmaAtiva = '__all__';
+            window.onload();
+        }}
+    ]);
+}
+
+function limparCampos() {
+    document.getElementById('nome').value = '';
+    document.getElementById('valorPago').value = '';
+    document.getElementById('cortesia').value = '0';
+    document.getElementById('dataPgto').valueAsDate = new Date();
+}
+
+// ═══════════════════════════════════════════════════════════
+//  📤 MODAL EXPORTAR
+// ═══════════════════════════════════════════════════════════
+function abrirModalExportar() {
+    openModal('📤 Exportar Dados', `
+        <p style="color:#666;font-size:.88rem;margin-bottom:16px;">Escolha o formato de exportação:</p>
+        <div class="io-option-grid">
+            <div class="io-option-btn io-excel" onclick="exportarExcel(); closeModal();">
+                <span class="io-icon">📊</span>
+                <span class="io-label">Excel (.xlsx)</span>
+                <span class="io-sub">Planilha com turmas e histórico</span>
+            </div>
+            <div class="io-option-btn io-ws" onclick="exportarWhatsappJson(); closeModal();">
+                <span class="io-icon">📲</span>
+                <span class="io-label">WhatsApp (JSON)</span>
+                <span class="io-sub">Backup completo via WhatsApp</span>
+            </div>
+            <div class="io-option-btn" onclick="exportarJsonArquivo(); closeModal();" style="grid-column: 1 / -1;">
+                <span class="io-icon">💾</span>
+                <span class="io-label">Arquivo JSON</span>
+                <span class="io-sub">Salva backup completo como arquivo .json no seu dispositivo</span>
+            </div>
+        </div>
+    `, [{ label: 'Cancelar' }]);
+}
+
+// ═══════════════════════════════════════════════════════════
+//  📥 MODAL IMPORTAR
+// ═══════════════════════════════════════════════════════════
+function abrirModalImportar() {
+    openModal('📥 Importar Dados', `
+        <p style="color:#666;font-size:.88rem;margin-bottom:4px;">Escolha a origem dos dados:</p>
+        <p style="color:#e67e22;background:#fff8ee;border:1px solid #fcdaa8;border-radius:6px;padding:8px 10px;font-size:.8rem;margin-bottom:16px;">
+            ⚠️ <b>Atenção:</b> a importação irá <b>substituir todos os dados atuais</b>. Faça um backup antes se necessário.
+        </p>
+        <div class="io-option-grid">
+            <div class="io-option-btn io-ws" onclick="iniciarImportacaoJson()">
+                <span class="io-icon">📲</span>
+                <span class="io-label">WhatsApp / JSON</span>
+                <span class="io-sub">Cole o conteúdo do backup ou selecione o arquivo</span>
+            </div>
+            <div class="io-option-btn io-excel" onclick="iniciarImportacaoExcel()">
+                <span class="io-icon">📊</span>
+                <span class="io-label">Excel (.xlsx)</span>
+                <span class="io-sub">Importa alunos de uma planilha existente</span>
+            </div>
+        </div>
+    `, [{ label: 'Cancelar' }]);
+}
+
+// ─── Importar JSON (WhatsApp ou arquivo) ───
+function iniciarImportacaoJson() {
+    closeModal();
+    setTimeout(() => {
+        openModal('📲 Importar JSON', `
+            <p style="color:#555;font-size:.85rem;margin-bottom:10px;">
+                Cole abaixo o conteúdo JSON do backup (gerado pelo WhatsApp ou pelo arquivo .json), ou selecione o arquivo diretamente:
+            </p>
+            <textarea id="jsonPasteArea" placeholder='{"turmas":[...],"matriculas":[...]}' rows="7"
+                style="width:100%;padding:10px;border:1px solid #ddd;border-radius:6px;font-size:.8rem;color:#333;resize:vertical;box-sizing:border-box;"></textarea>
+            <div style="margin-top:10px;display:flex;align-items:center;gap:10px;">
+                <button onclick="document.getElementById('fileInputJson').click()"
+                    style="background:var(--blue);color:white;padding:8px 14px;border:none;border-radius:6px;font-size:.85rem;cursor:pointer;font-weight:bold;">
+                    📂 Selecionar arquivo .json
+                </button>
+                <span style="color:#aaa;font-size:.78rem;">ou cole o texto acima</span>
+            </div>
+        `, [
+            { label: 'Cancelar' },
+            { label: '✅ Importar', color: 'var(--secondary)', close: false, action: processarImportacaoJson }
+        ]);
+    }, 150);
+}
+
+function processarImportacaoJson() {
+    const texto = document.getElementById('jsonPasteArea').value.trim();
+    if (!texto) {
+        alert('Cole o conteúdo JSON antes de importar.'); return;
+    }
+    // Extrai JSON mesmo que venha encapsulado em mensagem do WhatsApp (```...```)
+    const match = texto.match(/```[\s\S]*?({[\s\S]*})[\s\S]*?```/) || texto.match(/({[\s\S]*})/);
+    const jsonStr = match ? match[1] : texto;
+    try {
+        const dados = JSON.parse(jsonStr);
+        if (!dados.turmas || !dados.matriculas) throw new Error('Estrutura inválida');
+        aplicarImportacao(dados.turmas, dados.matriculas, 'JSON');
+    } catch(e) {
+        alert('❌ JSON inválido ou formato não reconhecido.\n\n' + e.message);
+    }
+}
+
+function importarDoArquivoJson(event) {
+    const file = event.target.files[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = (e) => {
+        const area = document.getElementById('jsonPasteArea');
+        if (area) area.value = e.target.result;
+        else {
+            // Se modal não estiver aberto, processa direto
+            try {
+                const dados = JSON.parse(e.target.result);
+                if (!dados.turmas || !dados.matriculas) throw new Error('Estrutura inválida');
+                aplicarImportacao(dados.turmas, dados.matriculas, 'JSON');
+            } catch(err) {
+                alert('❌ Arquivo JSON inválido:\n' + err.message);
             }
         }
-    }
+    };
+    reader.readAsText(file);
+    event.target.value = '';
+}
 
-    function confirmarRemover(index) {
-        openModal("Excluir", `Remover ${alunos[index].nome}?`, [
-            { label: "Não" },
-            { label: "Excluir", color: 'var(--danger)', action: () => { alunos.splice(index, 1); atualizarTabela(); } }
+// ─── Importar Excel ───
+function iniciarImportacaoExcel() {
+    closeModal();
+    setTimeout(() => {
+        openModal('📊 Importar Excel', `
+            <p style="color:#555;font-size:.85rem;margin-bottom:10px;">
+                Selecione um arquivo <b>.xlsx</b> exportado por este sistema.<br>
+                Cada aba da planilha será tratada como uma turma.
+            </p>
+            <div style="background:#f0f7ff;border:1px solid #b3d4f5;border-radius:6px;padding:10px;font-size:.8rem;color:#2c5282;margin-bottom:14px;">
+                <b>📋 Colunas esperadas:</b> Aluno, Valor Pago (R$), Data Pgto, R$/Aula, Aulas Free, Saldo, Débito (R$), Aulas Devidas
+            </div>
+            <button onclick="document.getElementById('fileInputExcel').click()"
+                style="background:#1a7e4a;color:white;padding:10px 18px;border:none;border-radius:8px;font-size:.9rem;cursor:pointer;font-weight:bold;width:100%;">
+                📂 Selecionar arquivo .xlsx
+            </button>
+        `, [{ label: 'Cancelar' }]);
+    }, 150);
+}
+
+function importarDoArquivoExcel(event) {
+    const file = event.target.files[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = (e) => {
+        try {
+            const wb = XLSX.read(e.target.result, { type: 'array' });
+            const novasTurmas = [];
+            const novasMatriculas = [];
+
+            wb.SheetNames.forEach(nomePlanilha => {
+                if (nomePlanilha === 'Histórico') return; // pula aba de histórico
+                const ws   = wb.Sheets[nomePlanilha];
+                const rows = XLSX.utils.sheet_to_json(ws);
+                if (!rows.length) return;
+
+                const turmaId = uid();
+                novasTurmas.push({ id: turmaId, nome: nomePlanilha });
+
+                rows.forEach(row => {
+                    const nome = row['Aluno'] || row['aluno'] || '';
+                    if (!nome) return;
+                    novasMatriculas.push({
+                        id: uid(),
+                        alunoNome: String(nome).trim(),
+                        turmaId,
+                        valorPago:  parseFloat(row['Valor Pago (R$)']) || 0,
+                        dataPgto:   row['Data Pgto'] ? String(row['Data Pgto']) : '',
+                        valorAula:  parseFloat(row['R$/Aula']) || 25,
+                        cortesia:   parseInt(row['Aulas Free']) || 0,
+                        restantes:  parseInt(row['Saldo']) || 0,
+                        ultimaAula: null,
+                        historicoPresencas: [],
+                        devidaTotal:  parseFloat(row['Débito (R$)']) || 0,
+                        aulasDevidas: parseInt(row['Aulas Devidas']) || 0
+                    });
+                });
+            });
+
+            if (!novasTurmas.length) {
+                alert('Nenhuma turma encontrada na planilha.'); return;
+            }
+            aplicarImportacao(novasTurmas, novasMatriculas, 'Excel');
+        } catch(err) {
+            alert('❌ Erro ao ler planilha:\n' + err.message);
+        }
+    };
+    reader.readAsArrayBuffer(file);
+    event.target.value = '';
+}
+
+// ─── Aplicar importação (confirma antes) ───
+function aplicarImportacao(novasTurmas, novasMatriculas, origem) {
+    closeModal();
+    setTimeout(() => {
+        openModal('⚠️ Confirmar Importação', `
+            <p style="color:#333;">Importar dados de <b>${origem}</b>?</p>
+            <ul style="color:#555;font-size:.88rem;margin:10px 0;padding-left:18px;">
+                <li><b>${novasTurmas.length}</b> turma(s) encontrada(s)</li>
+                <li><b>${novasMatriculas.length}</b> matrícula(s) encontrada(s)</li>
+            </ul>
+            <p style="color:var(--danger);font-size:.85rem;background:#fff5f5;border:1px solid #fcc;padding:8px 10px;border-radius:6px;">
+                ⚠️ Os dados atuais serão <b>substituídos</b>. Esta ação não pode ser desfeita.
+            </p>
+        `, [
+            { label: 'Cancelar' },
+            { label: '✅ Confirmar Importação', color: 'var(--secondary)', action: () => {
+                turmas     = novasTurmas;
+                matriculas = novasMatriculas;
+                turmaAtiva = '__all__';
+                salvar();
+                renderTudo();
+                setTimeout(() => openModal('✅ Importação Concluída', `
+                    <p style="color:#27ae60;font-size:.95rem;">
+                        Dados importados com sucesso!<br>
+                        <b>${novasTurmas.length}</b> turma(s) e <b>${novasMatriculas.length}</b> matrícula(s) carregadas.
+                    </p>
+                `, [{ label: 'OK' }]), 200);
+            }}
         ]);
+    }, 150);
+}
+
+// ═══════════════════════════════════════════════════════════
+//  EXPORTAR — implementações
+// ═══════════════════════════════════════════════════════════
+function exportarWhatsappJson() {
+    const payload = { turmas, matriculas };
+    const msg = `*BACKUP GESTÃO*\n\`\`\`${JSON.stringify(payload)}\`\`\``;
+    window.open(`https://api.whatsapp.com/send?text=${encodeURIComponent(msg)}`, '_blank');
+}
+
+function exportarJsonArquivo() {
+    const payload = JSON.stringify({ turmas, matriculas }, null, 2);
+    const blob = new Blob([payload], { type: 'application/json' });
+    const url  = URL.createObjectURL(blob);
+    const a    = document.createElement('a');
+    a.href     = url;
+    a.download = `backup_gestao_${new Date().toISOString().split('T')[0]}.json`;
+    a.click();
+    URL.revokeObjectURL(url);
+}
+
+function exportarExcel() {
+    const wb = XLSX.utils.book_new();
+
+    turmas.forEach(t => {
+        const lista = matriculas.filter(m => m.turmaId === t.id);
+        if (!lista.length) return;
+        const dados = lista.map(m => ({
+            "Aluno": m.alunoNome,
+            "Valor Pago (R$)": m.valorPago,
+            "Data Pgto": m.dataPgto,
+            "R$/Aula": m.valorAula,
+            "Aulas Free": m.cortesia,
+            "Saldo": m.restantes,
+            "Débito (R$)": m.devidaTotal || 0,
+            "Aulas Devidas": m.aulasDevidas || 0,
+            "Total Presenças": (m.historicoPresencas || []).length,
+            "Última Aula": m.ultimaAula || ''
+        }));
+        XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(dados), t.nome.substring(0, 31));
+    });
+
+    const histDados = [];
+    matriculas.forEach(m => {
+        (m.historicoPresencas || []).forEach(h => {
+            histDados.push({
+                "Aluno": m.alunoNome,
+                "Turma": nomeTurma(m.turmaId),
+                "Data": h.data,
+                "Tipo": h.tipo === 'paga' ? 'Paga' : 'A Dever',
+                "Valor (R$)": m.valorAula
+            });
+        });
+    });
+    if (histDados.length) {
+        XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(histDados), 'Histórico');
     }
 
-    function confirmarLimparTudo() {
-        openModal("⚠️ Cuidado", "Isso apagará todos os registros. Continuar?", [
-            { label: "Cancelar" },
-            { label: "Limpar Tudo", color: 'var(--danger)', action: () => { alunos = []; localStorage.clear(); atualizarTabela(); } }
-        ]);
+    if (!wb.SheetNames.length) {
+        openModal('Sem dados', 'Nenhuma matrícula para exportar.', [{ label: 'Ok' }]); return;
     }
-
-    function enviarWhatsapp() {
-        const msg = `*BACKUP GESTÃO*\n\`\`\`${JSON.stringify(alunos)}\`\`\``;
-        window.open(`https://api.whatsapp.com/send?text=${encodeURIComponent(msg)}`, '_blank');
-    }
-
-    function exportarExcel() {
-        const dados = alunos.map(a => ({ "Nome": a.nome, "Valor": a.valorPago, "Pgto": a.dataPgto, "Restantes": a.restantes, "UltAula": a.ultimaAula }));
-        const ws = XLSX.utils.json_to_sheet(dados);
-        const wb = XLSX.utils.book_new();
-        XLSX.utils.book_append_sheet(wb, ws, "Alunos");
-        XLSX.writeFile(wb, "gestao_aulas.xlsx");
-    }
-
-    function limparCampos() { 
-        document.getElementById('nome').value = ''; 
-        document.getElementById('valorPago').value = ''; 
-        document.getElementById('cortesia').value = '0';
-        document.getElementById('dataPgto').valueAsDate = new Date();
-    }
+    XLSX.writeFile(wb, `gestao_aulas_${new Date().toISOString().split('T')[0]}.xlsx`);
+}
 </script>
 </body>
 </html>
